@@ -218,7 +218,7 @@ public class IoSelectorProvider implements IoProvider {
                                         ExecutorService pool) {
         // 重点
         // 取消继续对keyOps的监听
-        //key.interestOps(key.readyOps() & ~keyOps);
+        key.interestOps(key.readyOps() & ~keyOps);
 
         Runnable runnable = null;
         try {

@@ -8,7 +8,6 @@ import net.qiujuer.library.clink.utils.CloseUtils;
 
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -25,24 +24,12 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
     private IoArgs.IoArgsEventListener receiveIoEventListener;
     private IoArgs.IoArgsEventListener sendIoEventListener;
 
-    private boolean runned = false;
     private final IoProvider.HandleInputCallback inputCallback = new IoProvider.HandleInputCallback() {
         @Override
         protected void canProviderInput() {
             if (isClosed.get()) {
                 return;
             }
-            // 造成数据延迟
-            if (runned){
-                return;
-            }
-            runned= true;
-            try {
-                TimeUnit.MILLISECONDS.sleep(5000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
             IoArgs args = new IoArgs();
             IoArgs.IoArgsEventListener listener = SocketChannelAdapter.this.receiveIoEventListener;
 
