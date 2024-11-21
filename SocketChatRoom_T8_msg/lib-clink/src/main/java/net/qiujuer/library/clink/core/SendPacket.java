@@ -1,4 +1,13 @@
 package net.qiujuer.library.clink.core;
+/**
+ * 发送包
+ * */
+public abstract class SendPacket extends Packet{
+    public abstract byte[] bytes();
 
-public class SendPacket {
+    private boolean isCanceled;
+
+    public boolean isCanceled() {
+        return isCanceled;
+    }
 }

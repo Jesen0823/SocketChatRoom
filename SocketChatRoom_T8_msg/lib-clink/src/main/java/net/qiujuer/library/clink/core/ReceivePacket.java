@@ -1,4 +1,8 @@
 package net.qiujuer.library.clink.core;
 
-public class ReceivePacket {
+/**
+ * 接受包
+ * */
+public abstract class ReceivePacket extends Packet {
+    public abstract void save(byte[] bytes,int count);
 }
