@@ -1,70 +1,21 @@
 package net.qiujuer.library.clink.impl.async;
 
-import net.qiujuer.library.clink.box.StringReceivePacket;
-import net.qiujuer.library.clink.core.*;
+import net.qiujuer.library.clink.core.IoArgs;
+import net.qiujuer.library.clink.core.ReceiveDispatcher;
+import net.qiujuer.library.clink.core.ReceivePacket;
+import net.qiujuer.library.clink.core.Receiver;
 import net.qiujuer.library.clink.utils.CloseUtils;
 
 import java.io.IOException;
-import java.nio.channels.Channels;
-import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsEventListener {
+public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsEventListener, AsyncPacketWriter.PacketProvider {
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private final Receiver receiver;
     private final ReceivePacketCallback receiveCallback;
+    private final AsyncPacketWriter packetWriter = new AsyncPacketWriter(this);
 
-    private IoArgs ioArgs = new IoArgs();
-    private ReceivePacket<?,?> packetTemp;
-    private WritableByteChannel packetChannel;
-    private long total;
-    private long position;
-
-    /**
-     * 解析数据到Packet
-     */
-    private void assemblePacket(IoArgs args) {
-        if (packetTemp == null) {
-            int length = args.readLength();
-            byte  type = length>200? Packet.TYPE_STREAM_FILE:Packet.TYPE_MEMORY_STRING;
-
-            packetTemp = receiveCallback.onArrivedNewPacket(type,length);
-            packetChannel = Channels.newChannel(packetTemp.open());
-
-            total = length;
-            position = 0;
-        }
-        // 数据写入buffer
-        try {
-            int count = args.writeTo(packetChannel);
-            position += count;
-            if (position == total) {
-                completePacket(true);
-            }
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            completePacket(false);
-        }
-    }
-
-    /**
-     * 完成数据接收操作
-     */
-    private void completePacket(boolean isSucceed) {
-        ReceivePacket packet = this.packetTemp;
-        CloseUtils.close(packet);
-        packetTemp = null;
-
-        WritableByteChannel channel = this.packetChannel;
-        CloseUtils.close(channel);
-        packetChannel = null;
-
-        if (packet != null) {
-            receiveCallback.onReceivePacketCompleted(packet);
-        }
-    }
 
     public AsyncReceiveDispatcher(Receiver receiver, ReceivePacketCallback receiveCallback) {
         this.receiver = receiver;
@@ -86,7 +37,7 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
     @Override
     public void close() throws IOException {
         if (isClosed.compareAndSet(false, true)) {
-            completePacket(false);
+           packetWriter.close();
         }
     }
 
@@ -105,30 +56,33 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
 
     @Override
     public IoArgs provideIoArgs() {
-        IoArgs args = ioArgs;
-
-        int receiveSize;
-        if (packetTemp == null) {
-            receiveSize = 4;
-        } else {
-            receiveSize = (int) Math.min(total - position, args.capacity());
-        }
-        // 设置本次接收数据大小
-        args.limit(receiveSize);
-        return args;
+        return packetWriter.takeIoArgs();
     }
 
     @Override
-    public boolean onConsumeFailed(Throwable e) {
-        e.printStackTrace();
-        return true;
+    public boolean onConsumeFailed(IoArgs args, Throwable e) {
+        return false;
     }
 
     @Override
     public boolean onConsumeCompleted(IoArgs args) {
-        assemblePacket(args);
+        do {
+            packetWriter.consumeIoArgs(args);
+        }while (args.remained());
+
         // 接收下一次数据
         registerReceive();
         return true;
+    }
+
+    @Override
+    public ReceivePacket takePacket(byte type, long length, byte[] headerInfo) {
+        return receiveCallback.onArrivedNewPacket(type, length);
+    }
+
+    @Override
+    public void completedPacket(ReceivePacket packet, boolean isSucceed) {
+        CloseUtils.close(packet);
+        receiveCallback.onReceivePacketCompleted(packet);
     }
 }

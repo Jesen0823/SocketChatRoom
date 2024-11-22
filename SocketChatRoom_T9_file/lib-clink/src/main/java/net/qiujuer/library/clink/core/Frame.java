@@ -7,8 +7,8 @@ public abstract class Frame {
     protected final byte[] header = new byte[FRAME_HEADER_LENGTH];
     public static final int MAX_CAPACITY = 64 * 1024 - 1;
 
-    public static final byte TYPE_PACKAGE_HEADER = 11;
-    public static final byte TYPE_PACKAGE_ENTITY = 12;
+    public static final byte TYPE_PACKET_HEADER = 11;
+    public static final byte TYPE_PACKET_ENTITY = 12;
 
     public static final byte TYPE_COMMAND_SEND_CANCEL = 41;
     public static final byte TYPE_COMMAND_RECEIVE_REJECT = 42;
@@ -23,7 +23,7 @@ public abstract class Frame {
             throw new RuntimeException("");
         }
         header[0] = (byte) (length >> 8);
-        header[1] = (byte) (8);
+        header[1] = (byte) (length);
 
         header[2] = type;
         header[3] = flag;
@@ -56,4 +56,6 @@ public abstract class Frame {
     public abstract boolean handle(IoArgs args) throws IOException;
 
     public abstract Frame nextFrame();
+
+    public abstract int getConsumableLength();
 }

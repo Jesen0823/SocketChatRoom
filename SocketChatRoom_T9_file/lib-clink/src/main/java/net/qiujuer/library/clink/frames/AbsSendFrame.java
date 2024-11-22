@@ -33,6 +33,11 @@ public abstract class AbsSendFrame extends Frame {
         }
     }
 
+    @Override
+    public int getConsumableLength() {
+        return headerRemaining+bodyRemaining;
+    }
+
     /**
      * 消费Body
      */

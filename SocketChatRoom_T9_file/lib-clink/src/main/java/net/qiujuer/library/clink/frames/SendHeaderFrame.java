@@ -14,10 +14,10 @@ import java.nio.channels.ReadableByteChannel;
  */
 public class SendHeaderFrame extends AbsSendPacketFrame {
     private final byte[] body;
-    private static final int PACKET_HEADER_FRAME_MIN_LENGTH = 6;
+    static final int PACKET_HEADER_FRAME_MIN_LENGTH = 6;
 
      public SendHeaderFrame(short identifier, SendPacket packet) {
-        super(PACKET_HEADER_FRAME_MIN_LENGTH, Frame.TYPE_PACKAGE_HEADER, Frame.FLAG_NONE, identifier, packet);
+        super(PACKET_HEADER_FRAME_MIN_LENGTH, Frame.TYPE_PACKET_HEADER, Frame.FLAG_NONE, identifier, packet);
 
         final long packetLength = packet.length();
         final byte packetType = packet.type();
