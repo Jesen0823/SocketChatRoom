@@ -1,30 +1,23 @@
 package net.qiujuer.library.clink.box;
 
-import net.qiujuer.library.clink.core.ReceivePacket;
+import java.io.ByteArrayOutputStream;
 
-import java.io.IOException;
+/**
+ * 字符串接收包
+ */
+public class StringReceivePacket extends AbsByteArrayReceivePacket<String> {
 
-public class StringReceivePacket extends ReceivePacket {
-    private byte[] buffer;
-    private int position;
-
-    public StringReceivePacket(int len) {
-        buffer = new byte[len];
-        length = len;
+    public StringReceivePacket(long len) {
+        super(len);
     }
 
     @Override
-    public void save(byte[] bytes, int count) {
-        System.arraycopy(bytes, 0, buffer, position, count);
-        position += count;
-    }
-
-    public String string() {
-        return new String(buffer);
+    public byte type() {
+        return TYPE_MEMORY_STRING;
     }
 
     @Override
-    public void close() throws IOException {
-
+    protected String buildEntity(ByteArrayOutputStream stream) {
+        return new String(stream.toByteArray());
     }
 }

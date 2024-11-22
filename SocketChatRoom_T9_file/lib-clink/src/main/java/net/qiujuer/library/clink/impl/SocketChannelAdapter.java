@@ -35,13 +35,13 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
             IoArgs args = receiveArgsTemp;
             IoArgs.IoArgsEventListener listener = SocketChannelAdapter.this.receiveIoEventListener;
 
-            listener.onStarted(args);
+            listener.provideIoArgs();
 
             try {
                 // 具体的读取操作
                 if (args.readFrom(channel) > 0) {
                     // 读取完成回调
-                    listener.onCompleted(args);
+                    listener.onConsumeCompleted(args);
                 } else {
                     throw new IOException("Cannot read any data!");
                 }
@@ -59,13 +59,13 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
             }
             IoArgs args = getAttach();
             IoArgs.IoArgsEventListener listener = sendIoEventListener;
-            listener.onStarted(args);
+            listener.provideIoArgs();
 
             try {
                 // 具体的写入操作
                 if (args.writeTo(channel) > 0) {
                     // 写入完成回调
-                    listener.onCompleted(args);
+                    listener.onConsumeCompleted(args);
                 } else {
                     throw new IOException("Cannot write any data!");
                 }
@@ -90,13 +90,13 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
     }
 
     @Override
-    public boolean receiveAsync(IoArgs args) throws IOException {
-        if (isClosed.get()) {
-            throw new IOException("Current channel is closed!");
-        }
+    public void postReceiveAsync() throws Exception {
 
-        receiveArgsTemp = args;
-        return ioProvider.registerInput(channel, inputCallback);
+    }
+
+    @Override
+    public long getLastReadTime() {
+        return 0;
     }
 
     @Override
@@ -109,6 +109,16 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
         // 当前发送的数据附加到回调中
         outputCallback.setAttach(args);
         return ioProvider.registerOutput(channel, outputCallback);
+    }
+
+    @Override
+    public void setSendListener(IoArgs.IoArgsEventListener listener) {
+
+    }
+
+    @Override
+    public void postSendAsync() {
+
     }
 
     @Override

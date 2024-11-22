@@ -8,41 +8,21 @@ import net.qiujuer.library.clink.core.Receiver;
 import net.qiujuer.library.clink.utils.CloseUtils;
 
 import java.io.IOException;
+import java.nio.channels.Channels;
+import java.nio.channels.WritableByteChannel;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AsyncReceiveDispatcher implements ReceiveDispatcher {
+public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsEventListener {
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private final Receiver receiver;
     private final ReceivePacketCallback receiveCallback;
 
     private IoArgs ioArgs = new IoArgs();
-    private ReceivePacket packetTemp;
-    private byte[] buffer;
-
-    private int total;
-    private int position;
-
-    private IoArgs.IoArgsEventListener ioArgsEventListener = new IoArgs.IoArgsEventListener() {
-        @Override
-        public void onStarted(IoArgs args) {
-            int receiveSize;
-            if (packetTemp == null) {
-                receiveSize = 4;
-            } else {
-                receiveSize = Math.min(total - position, args.capacity());
-            }
-            // 设置本次接收数据大小
-            args.limit(receiveSize);
-        }
-
-        @Override
-        public void onCompleted(IoArgs args) {
-            assemblePacket(args);
-            // 接着接收下一条消息
-            registerReceive();
-        }
-    };
+    private ReceivePacket<?,?> packetTemp;
+    private WritableByteChannel packetChannel;
+    private long total;
+    private long position;
 
     /**
      * 解析数据到Packet
@@ -51,34 +31,45 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher {
         if (packetTemp == null) {
             int length = args.readLength();
             packetTemp = new StringReceivePacket(length);
-            buffer = new byte[length];
+            packetChannel = Channels.newChannel(packetTemp.open());
+
             total = length;
             position = 0;
         }
         // 数据写入buffer
-        int count = args.writeTo(buffer, 0);
-        if (count > 0) {
-            packetTemp.save(buffer, count);
+        try {
+            int count = args.writeTo(packetChannel);
             position += count;
             if (position == total) {
-                completePacket();
+                completePacket(true);
                 packetTemp = null;
             }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            completePacket(false);
         }
     }
 
     /**
      * 完成数据接收操作
      */
-    private void completePacket() {
+    private void completePacket(boolean isSucceed) {
         ReceivePacket packet = this.packetTemp;
         CloseUtils.close(packet);
-        receiveCallback.onReceivePacketCompleted(packet);
+        packetTemp = null;
+
+        WritableByteChannel channel = this.packetChannel;
+        CloseUtils.close(channel);
+        packetChannel = null;
+        if (packet != null) {
+            receiveCallback.onReceivePacketCompleted(packet);
+        }
     }
 
     public AsyncReceiveDispatcher(Receiver receiver, ReceivePacketCallback receiveCallback) {
         this.receiver = receiver;
-        this.receiver.setReceiveListener(ioArgsEventListener);
+        this.receiver.setReceiveListener(this);
         this.receiveCallback = receiveCallback;
     }
 
@@ -95,19 +86,15 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher {
 
     @Override
     public void close() throws IOException {
-        if (isClosed.compareAndSet(false,true)){
-            ReceivePacket packet = this.packetTemp;
-            if (packet!=null){
-                CloseUtils.close(packet);
-                packetTemp = null;
-            }
+        if (isClosed.compareAndSet(false, true)) {
+            completePacket(false);
         }
     }
 
     private void registerReceive() {
         try {
-            receiver.receiveAsync(ioArgs);
-        } catch (IOException e) {
+            receiver.postReceiveAsync();
+        } catch (Exception e) {
             e.printStackTrace();
             closeAndNotify();
         }
@@ -117,4 +104,32 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher {
         CloseUtils.close(this);
     }
 
+    @Override
+    public IoArgs provideIoArgs() {
+        IoArgs args = ioArgs;
+
+        int receiveSize;
+        if (packetTemp == null) {
+            receiveSize = 4;
+        } else {
+            receiveSize = (int) Math.min(total - position, args.capacity());
+        }
+        // 设置本次接收数据大小
+        args.limit(receiveSize);
+        return args;
+    }
+
+    @Override
+    public boolean onConsumeFailed(Throwable e) {
+        e.printStackTrace();
+        return true;
+    }
+
+    @Override
+    public boolean onConsumeCompleted(IoArgs args) {
+        assemblePacket(args);
+        // 接收下一次数据
+        registerReceive();
+        return true;
+    }
 }

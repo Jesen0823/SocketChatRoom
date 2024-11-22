@@ -42,7 +42,6 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher {
             // 接着接收下一条消息
             registerReceive();
         }
-
     };
 
     /**

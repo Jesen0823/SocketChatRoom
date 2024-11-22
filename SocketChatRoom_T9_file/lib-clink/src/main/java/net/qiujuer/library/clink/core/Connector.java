@@ -25,10 +25,7 @@ public class Connector implements Closeable, SocketChannelAdapter.OnChannelStatu
     private ReceiveDispatcher.ReceivePacketCallback receivePacketCallback = new ReceiveDispatcher.ReceivePacketCallback() {
         @Override
         public void onReceivePacketCompleted(ReceivePacket packet) {
-            if (packet instanceof StringReceivePacket){
-                String msg = ((StringReceivePacket) packet).string();
-                onReceiveNewMessage(msg);
-            }
+            onReceiveNewPacket(packet);
         }
     };
 
@@ -69,6 +66,10 @@ public class Connector implements Closeable, SocketChannelAdapter.OnChannelStatu
 
     protected void onReceiveNewMessage(String str) {
         System.out.println(key.toString() + ":" + str);
+    }
+
+    protected void onReceiveNewPacket(ReceivePacket packet) {
+        System.out.println(key.toString() + ": [Type:" + packet.type()+", Length:"+packet.length()+"]");
     }
 }
 

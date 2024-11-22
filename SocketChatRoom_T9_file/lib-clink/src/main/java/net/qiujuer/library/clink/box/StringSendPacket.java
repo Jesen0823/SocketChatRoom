@@ -1,24 +1,26 @@
 package net.qiujuer.library.clink.box;
 
-import net.qiujuer.library.clink.core.SendPacket;
+import java.io.ByteArrayInputStream;
 
-import java.io.IOException;
+/**
+ * 字符串发送包
+ */
+public class StringSendPacket extends BytesSendPacket {
 
-public class StringSendPacket extends SendPacket {
-    private final byte[] bytes;
-
+    /**
+     * 字符串发送时就是Byte数组，所以直接得到Byte数组，并按照Byte的方式发送
+     */
     public StringSendPacket(String msg) {
-        this.bytes = msg.getBytes();
-        this.length = bytes.length;
+        super(msg.getBytes());
     }
 
     @Override
-    public byte[] bytes() {
-        return bytes;
+    public byte type() {
+        return TYPE_MEMORY_STRING;
     }
 
     @Override
-    public void close() throws IOException {
-
+    protected ByteArrayInputStream createStream() {
+        return new ByteArrayInputStream(bytes);
     }
 }

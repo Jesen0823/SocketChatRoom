@@ -3,7 +3,9 @@ package net.qiujuer.library.clink.core;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SocketChannel;
+import java.nio.channels.WritableByteChannel;
 
 /**
  * IO输出输入的参数,封装ByteBuffer
@@ -48,6 +50,38 @@ public class IoArgs {
         finishWriting();
         return bytesProduced;
     }
+
+    /**
+     * 从bytes中读取数据
+     */
+    public int readFrom(ReadableByteChannel channel) throws IOException {
+        int bytesProduced = 0;
+        while (buffer.hasRemaining()) {
+            int len = channel.read(buffer);
+            if (len < 0) {
+                throw new EOFException();
+            }
+            bytesProduced += len;
+        }
+        return bytesProduced;
+    }
+
+
+    /**
+     * 写入数据到bytes中
+     */
+    public int writeTo(WritableByteChannel channel) throws IOException {
+        int bytesProduced = 0;
+        while (buffer.hasRemaining()) {
+            int len = channel.write(buffer);
+            if (len < 0) {
+                throw new EOFException();
+            }
+            bytesProduced += len;
+        }
+        return bytesProduced;
+    }
+
 
     /**
      * 向SocketChannel写入数据
@@ -102,8 +136,28 @@ public class IoArgs {
     }
 
     public interface IoArgsEventListener {
-        void onStarted(IoArgs args);
+        /**
+         * 提供一份可消费的IoArgs
+         *
+         * @return IoArgs
+         */
+        IoArgs provideIoArgs();
 
-        void onCompleted(IoArgs args);
+        /**
+         * 消费失败时回调
+         *
+         * @param e 异常信息
+         * @return 是否关闭链接，True关闭
+         */
+        boolean onConsumeFailed(Throwable e);
+
+        /**
+         * 消费成功
+         *
+         * @param args IoArgs
+         * @return True:直接注册下一份调度，False:无需注册
+         */
+        boolean onConsumeCompleted(IoArgs args);
+
     }
 }
