@@ -25,6 +25,18 @@ public class IoArgs {
     }
 
     /**
+     * 从bytes中读取数据
+     */
+    public int readFrom(byte[] bytes, int offset, int count) {
+        int size = Math.min(count, buffer.remaining());
+        if (size < 0) {
+            return 0;
+        }
+        buffer.put(bytes, offset, size);
+        return size;
+    }
+
+    /**
      * 写入数据到bytes中
      */
     public int writeTo(byte[] bytes, int offset) {
@@ -103,7 +115,7 @@ public class IoArgs {
      * 设置单词写操作的容纳区间
      */
     public void limit(int l) {
-        this.limit = l;
+        this.limit = Math.min(l, buffer.capacity());
     }
 
     /**
@@ -123,16 +135,28 @@ public class IoArgs {
         buffer.flip();
     }
 
-    public void writeLength(int total) {
-        buffer.putInt(total);
-    }
-
     public int readLength() {
         return buffer.getInt();
     }
 
     public int capacity() {
         return buffer.capacity();
+    }
+
+    /**
+     * buffer的可存储区间是否大于0
+     */
+    public boolean remained() {
+        return buffer.remaining() > 0;
+    }
+
+    /**
+     * 填充空数据
+     */
+    public int fillEmpty(int size) {
+        int fillSize = Math.min(size, buffer.remaining());
+        buffer.position(buffer.position() + fillSize);
+        return fillSize;
     }
 
     public interface IoArgsEventListener {
@@ -149,7 +173,7 @@ public class IoArgs {
          * @param e 异常信息
          * @return 是否关闭链接，True关闭
          */
-        boolean onConsumeFailed(Throwable e);
+        boolean onConsumeFailed(IoArgs args, Throwable e);
 
         /**
          * 消费成功

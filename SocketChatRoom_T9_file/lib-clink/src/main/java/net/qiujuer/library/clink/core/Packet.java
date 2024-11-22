@@ -68,6 +68,14 @@ public abstract class Packet<S extends Closeable> implements Closeable {
         return null;
     }
 
+    /**
+     * 头部额外信息，用于携带额外的校验信息
+     */
+    public byte[] headerInfo(){
+
+        return null;
+    }
+
     @Override
     public final void close() throws IOException {
         if (stream != null) {

@@ -15,4 +15,11 @@ public abstract class SendPacket<T extends InputStream> extends Packet<T> {
     public boolean isCanceled() {
         return isCanceled;
     }
+
+    /**
+     * 取消发送
+     */
+    public void cancel(){
+        isCanceled = true;
+    }
 }

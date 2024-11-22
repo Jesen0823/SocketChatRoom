@@ -32,18 +32,18 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
             if (isClosed.get()) {
                 return;
             }
-            IoArgs args = receiveArgsTemp;
-            IoArgs.IoArgsEventListener listener = SocketChannelAdapter.this.receiveIoEventListener;
-
-            listener.provideIoArgs();
+            IoArgs.IoArgsEventListener listener = receiveIoEventListener;
+            IoArgs args = listener.provideIoArgs();
 
             try {
-                // 具体的读取操作
-                if (args.readFrom(channel) > 0) {
+                if (args==null){
+                    listener.onConsumeFailed(null,new IOException("Provide IoArgs is null"));
+                }else if (args.readFrom(channel) > 0) {
+                    // 具体的读取操作
                     // 读取完成回调
                     listener.onConsumeCompleted(args);
                 } else {
-                    throw new IOException("Cannot read any data!");
+                    listener.onConsumeFailed(args,new IOException("Cannot read any data!"));
                 }
             } catch (IOException ignored) {
                 CloseUtils.close(SocketChannelAdapter.this);
@@ -91,6 +91,16 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
 
     @Override
     public void postReceiveAsync() throws Exception {
+        if (isClosed.get() || !channel.isOpen()) {
+            throw new IOException("Current channel is closed!");
+        }
+        // 进行Callback状态监测，判断是否处于自循环状态
+        //outputCallback.checkAttachNull();
+
+        // 优先发送一次
+        // outputCallback.run();
+
+        //ioProvider.registerOutput(outputCallback);
 
     }
 
