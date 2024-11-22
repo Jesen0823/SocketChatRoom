@@ -11,7 +11,7 @@ import java.nio.channels.WritableByteChannel;
  * IO输出输入的参数,封装ByteBuffer
  */
 public class IoArgs {
-    private int limit =256;
+    private int limit = 256;
     private byte[] byteBuffer = new byte[256];
     private ByteBuffer buffer = ByteBuffer.wrap(byteBuffer);
 
@@ -102,7 +102,7 @@ public class IoArgs {
     /**
      * 设置单词写操作的容纳区间
      */
-    public void limit(int l){
+    public void limit(int l) {
         this.limit = l;
     }
 
@@ -127,7 +127,7 @@ public class IoArgs {
         buffer.putInt(total);
     }
 
-    public int readLength(){
+    public int readLength() {
         return buffer.getInt();
     }
 

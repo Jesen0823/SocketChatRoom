@@ -3,6 +3,7 @@ package net.qiujuer.lesson.sample.server;
 import net.qiujuer.lesson.sample.server.handle.ClientHandler;
 import net.qiujuer.library.clink.utils.CloseUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
@@ -22,9 +23,11 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
     private final ExecutorService forwardExecutor;
     private Selector selector;
     private ServerSocketChannel serverChannel;
+    private final File cachePath;
 
-    public TCPServer(int port) {
+    public TCPServer(int port, File cachePath) {
         this.port = port;
+        this.cachePath = cachePath;
         forwardExecutor = Executors.newSingleThreadExecutor();
     }
 
@@ -134,7 +137,7 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
                             SocketChannel socketChannel = serverSocketChannel.accept();
                             try {
                                 // 客户端构建异步线程
-                                ClientHandler clientHandler = new ClientHandler(socketChannel, TCPServer.this);
+                                ClientHandler clientHandler = new ClientHandler(socketChannel, TCPServer.this, cachePath);
 
                                 synchronized (TCPServer.this) {
                                     clientHandlerList.add(clientHandler);
