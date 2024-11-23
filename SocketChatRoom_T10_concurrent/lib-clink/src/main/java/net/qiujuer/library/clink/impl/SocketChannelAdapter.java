@@ -111,18 +111,6 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
         return 0;
     }
 
-   /* @Override
-    public boolean sendAsync(IoArgs args, IoArgs.IoArgsEventListener listener) throws IOException {
-        if (isClosed.get()) {
-            throw new IOException("Current channel is closed!");
-        }
-
-        sendIoEventListener = listener;
-        // 当前发送的数据附加到回调中
-        outputCallback.setAttach(args);
-        return ioProvider.registerOutput(channel, outputCallback);
-    }*/
-
     @Override
     public void setReceiveListener(IoArgs.IoArgsEventListener listener) {
         receiveIoEventListener = listener;

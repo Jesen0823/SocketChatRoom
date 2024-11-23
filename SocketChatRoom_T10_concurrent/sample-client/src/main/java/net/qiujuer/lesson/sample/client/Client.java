@@ -49,9 +49,11 @@ public class Client {
             String str = input.readLine();
 
             if (str == null
-                    || str.length() == 0
-                    || "00bye00".equalsIgnoreCase(str)) {
+                    || Foo.COMMAND_EXIT.equalsIgnoreCase(str)) {
                 break;
+            }
+            if (str.length() == 0) {
+                continue;
             }
             // 文件发送
             if (str.startsWith("--f")) {

@@ -16,7 +16,6 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
     private final ReceivePacketCallback receiveCallback;
     private final AsyncPacketWriter packetWriter = new AsyncPacketWriter(this);
 
-
     public AsyncReceiveDispatcher(Receiver receiver, ReceivePacketCallback receiveCallback) {
         this.receiver = receiver;
         this.receiver.setReceiveListener(this);
@@ -28,10 +27,9 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
         registerReceive();
     }
 
-
     @Override
     public void stop() {
-
+        receiver.setReceiveListener(null);
     }
 
     @Override
