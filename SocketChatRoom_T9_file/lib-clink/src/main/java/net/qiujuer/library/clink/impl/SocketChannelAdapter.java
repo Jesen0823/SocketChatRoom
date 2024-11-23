@@ -24,8 +24,6 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
     private IoArgs.IoArgsEventListener receiveIoEventListener;
     private IoArgs.IoArgsEventListener sendIoEventListener;
 
-    private IoArgs receiveArgsTemp;
-
     private final IoProvider.HandleInputCallback inputCallback = new IoProvider.HandleInputCallback() {
         @Override
         protected void canProviderInput() {

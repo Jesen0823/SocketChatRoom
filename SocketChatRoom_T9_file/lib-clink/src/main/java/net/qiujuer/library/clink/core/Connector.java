@@ -25,7 +25,7 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
     private SendDispatcher sendDispatcher;
     private ReceiveDispatcher receiveDispatcher;
 
-    private ReceiveDispatcher.ReceivePacketCallback receivePacketCallback = new ReceiveDispatcher.ReceivePacketCallback() {
+    private final ReceiveDispatcher.ReceivePacketCallback receivePacketCallback = new ReceiveDispatcher.ReceivePacketCallback() {
         @Override
         public ReceivePacket<?, ?> onArrivedNewPacket(byte type, long length) {
             switch (type) {
