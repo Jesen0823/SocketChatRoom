@@ -56,7 +56,10 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
 
     @Override
     public IoArgs provideIoArgs() {
-        return packetWriter.takeIoArgs();
+        IoArgs args = packetWriter.takeIoArgs();
+        // 开始写入数据了
+        args.startWriting();
+        return args;
     }
 
     @Override
@@ -69,6 +72,8 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
         if (isClosed.get()){
             return false;
         }
+        // 消费数据之前，标识已经完成
+        args.finishWriting();
         // 有数据才消费
         do {
             packetWriter.consumeIoArgs(args);

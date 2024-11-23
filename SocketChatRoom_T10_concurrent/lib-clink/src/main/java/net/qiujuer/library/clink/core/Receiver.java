@@ -11,7 +11,7 @@ public interface Receiver extends Closeable {
      *
      * @throws Exception 异常信息
      */
-    void postReceiveAsync() throws Exception;
+    boolean postReceiveAsync() throws Exception;
 
     /**
      * 获取读取数据的时间

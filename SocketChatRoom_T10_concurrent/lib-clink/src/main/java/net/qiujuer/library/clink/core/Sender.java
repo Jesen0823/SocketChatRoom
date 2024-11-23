@@ -7,7 +7,7 @@ import java.io.IOException;
 
 public interface Sender extends Closeable {
     // 异步发送
-    boolean sendAsync(IoArgs args, IoArgs.IoArgsEventListener listener) throws IOException;
+    //boolean sendAsync(IoArgs args, IoArgs.IoArgsEventListener listener) throws IOException;
 
     void setSendListener(IoArgs.IoArgsEventListener listener);
 
