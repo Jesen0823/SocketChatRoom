@@ -141,6 +141,7 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
 
                                 synchronized (TCPServer.this) {
                                     clientHandlerList.add(clientHandler);
+                                    System.out.println("当前客户端数量："+clientHandlerList.size());
                                 }
                             } catch (IOException e) {
                                 e.printStackTrace();

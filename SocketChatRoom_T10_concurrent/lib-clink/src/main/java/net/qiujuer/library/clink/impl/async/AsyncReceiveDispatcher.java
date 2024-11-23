@@ -66,9 +66,13 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
 
     @Override
     public boolean onConsumeCompleted(IoArgs args) {
+        if (isClosed.get()){
+            return false;
+        }
+        // 有数据才消费
         do {
             packetWriter.consumeIoArgs(args);
-        }while (args.remained());
+        }while (args.remained() && !isClosed.get());
 
         // 接收下一次数据
         registerReceive();

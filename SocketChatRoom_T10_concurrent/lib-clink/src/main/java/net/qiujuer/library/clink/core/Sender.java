@@ -11,5 +11,5 @@ public interface Sender extends Closeable {
 
     void setSendListener(IoArgs.IoArgsEventListener listener);
 
-    void postSendAsync();
+    boolean postSendAsync () throws IOException;
 }

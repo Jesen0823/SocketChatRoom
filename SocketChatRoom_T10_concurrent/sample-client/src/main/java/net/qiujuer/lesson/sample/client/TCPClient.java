@@ -39,10 +39,10 @@ public class TCPClient extends Connector {
     @Override
     protected void onReceiveNewPacket(ReceivePacket packet) {
         super.onReceiveNewPacket(packet);
-        if (packet.type() == Packet.TYPE_MEMORY_STRING){
+       /* if (packet.type() == Packet.TYPE_MEMORY_STRING){
             String string = (String) packet.entity();
             System.out.println("onReceiveNewPacket: "+key+" : "+string);
-        }
+        }*/
     }
 
     public static TCPClient startWith(ServerInfo info, File cacheFile) throws IOException {

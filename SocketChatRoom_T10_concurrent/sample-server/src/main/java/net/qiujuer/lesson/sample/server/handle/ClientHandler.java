@@ -46,7 +46,7 @@ public class ClientHandler extends Connector{
         super.onReceiveNewPacket(packet);
         if (packet.type() == Packet.TYPE_MEMORY_STRING){
             String string = (String) packet.entity();
-            System.out.println("onReceiveNewPacket: "+key+" : "+string);
+            //System.out.println("onReceiveNewPacket: "+key+" : "+string);
             clientHandlerCallback.onMessageArrived(this,string);
         }
     }

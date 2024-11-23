@@ -121,12 +121,14 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
 
     @Override
     public void setSendListener(IoArgs.IoArgsEventListener listener) {
-
+        sendIoEventListener = listener;
     }
 
     @Override
-    public void postSendAsync() {
-
+    public boolean postSendAsync() throws IOException {
+// 当前发送的数据附加到回调中
+        outputCallback.setAttach(null);
+        return ioProvider.registerOutput(channel, outputCallback);
     }
 
     @Override
