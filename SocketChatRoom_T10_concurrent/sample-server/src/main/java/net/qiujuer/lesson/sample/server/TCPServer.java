@@ -1,9 +1,9 @@
 package net.qiujuer.lesson.sample.server;
 
 import net.qiujuer.lesson.sample.foo.Foo;
-import net.qiujuer.lesson.sample.server.handle.ClientHandler;
-import net.qiujuer.lesson.sample.server.handle.ConnectorCloseChain;
-import net.qiujuer.lesson.sample.server.handle.ConnectorStringPacketChain;
+import net.qiujuer.lesson.sample.foo.handle.ClientHandler;
+import net.qiujuer.lesson.sample.foo.handle.ConnectorCloseChain;
+import net.qiujuer.lesson.sample.foo.handle.ConnectorStringPacketChain;
 import net.qiujuer.library.clink.box.StringReceivePacket;
 import net.qiujuer.library.clink.core.Connector;
 import net.qiujuer.library.clink.core.SchedulerJob;
