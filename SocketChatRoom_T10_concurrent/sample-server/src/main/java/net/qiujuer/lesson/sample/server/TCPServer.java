@@ -120,7 +120,7 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
             // 添加关闭操作的责任链节点
             clientHandler.getCloseChain().appendLast(new RemoveQueueOnConnectorClosedChain());
 
-            synchronized (TCPServer.this) {
+            synchronized (clientHandlerList) {
                 clientHandlerList.add(clientHandler);
                 System.out.println("当前客户端数量：" + clientHandlerList.size());
             }
