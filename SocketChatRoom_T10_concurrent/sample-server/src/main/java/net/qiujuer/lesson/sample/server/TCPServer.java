@@ -29,7 +29,6 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
     private final int port;
     private ServerAcceptor mServerAcceptor;
     private final List<ConnectorHandler> connectorHandlerList = new ArrayList<>();
-    private final ExecutorService deliveryPool;
     private Selector selector;
     private ServerSocketChannel serverChannel;
     private final File cachePath;
@@ -39,7 +38,6 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
     public TCPServer(int port, File cachePath) {
         this.port = port;
         this.cachePath = cachePath;
-        deliveryPool = Executors.newSingleThreadExecutor();
         // 添加默认群
         this.groups.put(Foo.DEFAULT_GROUP_NAME, new Group(Foo.DEFAULT_GROUP_NAME, this));
     }
@@ -81,8 +79,6 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
             connectorHandler.exit();
         }
         CloseUtils.close(serverChannel);
-
-        deliveryPool.shutdownNow();
     }
 
     void broadcast(String str) {
@@ -118,7 +114,7 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
     @Override
     public void onNewSocketArrived(SocketChannel channel) {
         try {
-            ConnectorHandler connectorHandler = new ConnectorHandler(channel, deliveryPool, cachePath);
+            ConnectorHandler connectorHandler = new ConnectorHandler(channel, cachePath);
             System.out.println(connectorHandler.getClientInfo() + ": Connected");
 
             // 添加统计数据责任链节点
@@ -130,7 +126,7 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
             connectorHandler.getCloseChain().appendLast(new RemoveQueueOnConnectorClosedChain());
 
             // 添加空闲任务发送心跳包
-            SchedulerJob schedulerJob = new IdleTimeoutScheduleJob(10, TimeUnit.SECONDS, connectorHandler);
+            SchedulerJob schedulerJob = new IdleTimeoutScheduleJob(5, TimeUnit.SECONDS, connectorHandler);
             connectorHandler.schedule(schedulerJob);
 
             synchronized (connectorHandlerList) {

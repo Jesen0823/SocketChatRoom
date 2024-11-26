@@ -3,6 +3,9 @@ package net.qiujuer.lesson.sample.client;
 
 import net.qiujuer.lesson.sample.client.bean.ServerInfo;
 import net.qiujuer.lesson.sample.foo.Foo;
+import net.qiujuer.lesson.sample.foo.handle.ConnectorHandler;
+import net.qiujuer.lesson.sample.foo.handle.ConnectorStringPacketChain;
+import net.qiujuer.library.clink.box.StringReceivePacket;
 import net.qiujuer.library.clink.core.Connector;
 import net.qiujuer.library.clink.core.Packet;
 import net.qiujuer.library.clink.core.ReceivePacket;
@@ -13,39 +16,15 @@ import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 
-public class TCPClient extends Connector {
-    private final File cachePath;
+public class TCPClient extends ConnectorHandler {
 
-    public TCPClient(SocketChannel socketChannel,File cachePath) throws IOException {
-        setup(socketChannel);
-        this.cachePath = cachePath;
+    public TCPClient(SocketChannel socketChannel, File cachePath) throws IOException {
+        super(socketChannel, cachePath);
+
+        getStringPacketChain().appendLast(new PrintStringPacketChain());
     }
 
-    public void exit() {
-        CloseUtils.close(this);
-    }
-
-    @Override
-    protected File createNewReceiveFile() {
-        return Foo.createRandomTemp(cachePath);
-    }
-
-    @Override
-    public void onChannelClosed(SocketChannel channel) {
-        super.onChannelClosed(channel);
-        System.out.println("连接已关闭，无法读取数据");
-    }
-
-    @Override
-    protected void onReceiveNewPacket(ReceivePacket packet) {
-        super.onReceiveNewPacket(packet);
-        if (packet.type() == Packet.TYPE_MEMORY_STRING){
-            String string = (String) packet.entity();
-            System.out.println("onReceiveNewPacket: "+key+" : "+string);
-        }
-    }
-
-    public static TCPClient startWith(ServerInfo info, File cacheFile) throws IOException {
+    static TCPClient startWith(ServerInfo info, File cacheFile) throws IOException {
         SocketChannel socketChannel = SocketChannel.open();
 
         // 连接本地，端口2000；超时时间3000ms
@@ -56,11 +35,21 @@ public class TCPClient extends Connector {
         System.out.println("服务器信息：" + socketChannel.getRemoteAddress().toString());
 
         try {
-            return new TCPClient(socketChannel,cacheFile);
+            return new TCPClient(socketChannel, cacheFile);
         } catch (Exception e) {
             System.out.println("连接异常");
             CloseUtils.close(socketChannel);
         }
         return null;
+    }
+
+    private class PrintStringPacketChain extends ConnectorStringPacketChain {
+
+        @Override
+        protected boolean consume(ConnectorHandler handler, StringReceivePacket stringReceivePacket) {
+            String str = stringReceivePacket.entity();
+            System.out.println("PrintStringPacketChain: " + str);
+            return true;
+        }
     }
 }
