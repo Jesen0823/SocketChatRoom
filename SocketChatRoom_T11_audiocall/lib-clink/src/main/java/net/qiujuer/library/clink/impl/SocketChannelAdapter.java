@@ -36,6 +36,9 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
             }
             lastReadTime = System.currentTimeMillis();
             IoArgs.IoArgsEventListener listener = receiveIoEventListener;
+            if (listener == null) {
+                return;
+            }
             // 拿到新的Args
             if (args == null) {
                 args = listener.provideIoArgs();
@@ -48,7 +51,8 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
                     if (count == 0) {
                         System.out.println("Current read zero data");
                     }
-                    if (args.remained()) {
+                    // 检查是否还有空闲空间，以及是否需要填满空闲区间
+                    if (args.remained() && args.isNeedConsumeRemaining()) {
                         // 附加当前未消费完成的args
                         setAttach(args);
                         // 再次注册数据发送
@@ -75,6 +79,9 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
             }
             lastWriteTime = System.currentTimeMillis();
             IoArgs.IoArgsEventListener listener = sendIoEventListener;
+            if (listener == null) {
+                return;
+            }
             // 拿到新的Args
             if (args == null) {
                 args = listener.provideIoArgs();
@@ -88,7 +95,8 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
                     if (count == 0) {
                         System.out.println("Current write zero data");
                     }
-                    if (args.remained()) {
+                    // 检查是否还有未消费数据，以及是否需要一次消费完全
+                    if (args.remained() && args.isNeedConsumeRemaining()) {
                         // 附加当前未消费完成的args
                         setAttach(args);
                         // 再次注册数据发送
@@ -140,12 +148,12 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
         }
         // 进行Callback状态监测，判断是否处于自循环状态
         inputCallback.checkAttachNull();
-        return ioProvider.registerInput(channel,inputCallback);
+        return ioProvider.registerInput(channel, inputCallback);
     }
 
     @Override
     public boolean postSendAsync() throws IOException {
-        if (isClosed.get()){
+        if (isClosed.get()) {
             throw new IOException("Current channel is closed.");
         }
         // 进行Callback状态监测，判断是否处于自循环状态

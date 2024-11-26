@@ -11,9 +11,25 @@ import java.nio.channels.WritableByteChannel;
  * IO输出输入的参数,封装ByteBuffer
  */
 public class IoArgs {
-    private int limit = 256;
-    private byte[] byteBuffer = new byte[256];
-    private ByteBuffer buffer = ByteBuffer.wrap(byteBuffer);
+    // 单次操作最大区间
+    private volatile int limit;
+    // 是否需要消费所有的区间(读取/写入)
+    private final boolean isNeedConsumeRemaining;
+    private ByteBuffer buffer;
+
+    public IoArgs() {
+        this(256);
+    }
+
+    public IoArgs(int size) {
+        this(size, true);
+    }
+
+    public IoArgs(int size, boolean isNeedConsumeRemaining) {
+        this.limit = size;
+        this.isNeedConsumeRemaining = isNeedConsumeRemaining;
+        this.buffer = ByteBuffer.allocate(size);
+    }
 
     /**
      * 从bytes中读取数据
@@ -140,6 +156,9 @@ public class IoArgs {
         return buffer.getInt();
     }
 
+    /**
+     * 获取当前容量
+     */
     public int capacity() {
         return buffer.capacity();
     }
@@ -152,12 +171,33 @@ public class IoArgs {
     }
 
     /**
+     * 是否需要填满或完全消费所有数据
+     */
+    public boolean isNeedConsumeRemaining() {
+        return isNeedConsumeRemaining;
+    }
+
+    /**
      * 填充空数据
      */
     public int fillEmpty(int size) {
         int fillSize = Math.min(size, buffer.remaining());
         buffer.position(buffer.position() + fillSize);
         return fillSize;
+    }
+
+    /**
+     * 清空所有数据
+     */
+    public int setEmpty(int size){
+        return fillEmpty(size);
+    }
+
+    /**
+     * 重置最大限制
+     */
+    public void resetLimit() {
+        this.limit = buffer.capacity();
     }
 
     public interface IoArgsEventListener {
