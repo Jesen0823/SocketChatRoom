@@ -60,6 +60,8 @@ public abstract class Packet<S extends Closeable> implements Closeable {
 
     /**
      * 获取当前实例的流操作
+     *
+     * @return {@link java.io.InputStream} or {@link java.io.OutputStream}
      */
     public final S open() {
         if (stream == null) {
@@ -71,7 +73,7 @@ public abstract class Packet<S extends Closeable> implements Closeable {
     /**
      * 头部额外信息，用于携带额外的校验信息
      */
-    public byte[] headerInfo(){
+    public byte[] headerInfo() {
 
         return null;
     }
