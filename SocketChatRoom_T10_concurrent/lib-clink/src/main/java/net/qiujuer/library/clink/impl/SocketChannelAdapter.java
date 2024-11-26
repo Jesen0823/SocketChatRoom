@@ -24,12 +24,17 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
     private IoArgs.IoArgsEventListener receiveIoEventListener;
     private IoArgs.IoArgsEventListener sendIoEventListener;
 
+    private volatile long lastReadTime = System.currentTimeMillis();
+    private volatile long lastWriteTime = System.currentTimeMillis();
+
+    // 读取数据的回调
     private final IoProvider.HandleProviderCallback inputCallback = new IoProvider.HandleProviderCallback() {
         @Override
         protected void onProviderIo(IoArgs args) {
             if (isClosed.get()) {
                 return;
             }
+            lastReadTime = System.currentTimeMillis();
             IoArgs.IoArgsEventListener listener = receiveIoEventListener;
             // 拿到新的Args
             if (args == null) {
@@ -60,6 +65,7 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
         }
     };
 
+    // 写入数据发送数据的回调
     private final IoProvider.HandleProviderCallback outputCallback = new IoProvider.HandleProviderCallback() {
 
         @Override
@@ -67,6 +73,7 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
             if (isClosed.get()) {
                 return;
             }
+            lastWriteTime = System.currentTimeMillis();
             IoArgs.IoArgsEventListener listener = sendIoEventListener;
             // 拿到新的Args
             if (args == null) {
@@ -108,7 +115,12 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
 
     @Override
     public long getLastReadTime() {
-        return 0;
+        return lastReadTime;
+    }
+
+    @Override
+    public long getLastWriteTime() {
+        return lastWriteTime;
     }
 
     @Override

@@ -12,6 +12,7 @@ public abstract class Frame {
 
     public static final byte TYPE_COMMAND_SEND_CANCEL = 41;
     public static final byte TYPE_COMMAND_RECEIVE_REJECT = 42;
+    public static final byte TYPE_COMMAND_HEARTBEAT = 81;
 
     public static final byte FLAG_NONE = 0;
 

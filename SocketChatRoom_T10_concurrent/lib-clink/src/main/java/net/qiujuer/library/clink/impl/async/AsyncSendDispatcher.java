@@ -24,6 +24,18 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventLi
         sender.setSendListener(this);
     }
 
+
+    @Override
+    public void sendHeartbeat() {
+        // 已经有业务数据在发送，没必要发心跳帧去探测连接状态
+        if (queue.size() > 0) {
+            return;
+        }
+        if (reader.requestSendHeartbeatFrame()){
+            requestSend();
+        }
+    }
+
     @Override
     public void send(SendPacket packet) {
         queue.offer(packet);

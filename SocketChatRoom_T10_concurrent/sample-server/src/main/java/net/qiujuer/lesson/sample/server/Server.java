@@ -4,6 +4,7 @@ import net.qiujuer.lesson.sample.foo.Foo;
 import net.qiujuer.lesson.sample.foo.constants.TCPConstants;
 import net.qiujuer.library.clink.core.IoContext;
 import net.qiujuer.library.clink.impl.IoSelectorProvider;
+import net.qiujuer.library.clink.impl.SchedulerImpl;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -16,6 +17,7 @@ public class Server {
     public static void main(String[] args) throws IOException {
         IoContext.setup()
                 .ioProvider(new IoSelectorProvider())
+                .scheduler(new SchedulerImpl(1))
                 .start();
 
         TCPServer tcpServer = new TCPServer(TCPConstants.PORT_SERVER, cachePath);

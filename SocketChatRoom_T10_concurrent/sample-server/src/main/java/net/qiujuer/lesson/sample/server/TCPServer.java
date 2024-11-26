@@ -6,6 +6,8 @@ import net.qiujuer.lesson.sample.server.handle.ConnectorCloseChain;
 import net.qiujuer.lesson.sample.server.handle.ConnectorStringPacketChain;
 import net.qiujuer.library.clink.box.StringReceivePacket;
 import net.qiujuer.library.clink.core.Connector;
+import net.qiujuer.library.clink.core.SchedulerJob;
+import net.qiujuer.library.clink.core.schedule.IdleTimeoutScheduleJob;
 import net.qiujuer.library.clink.utils.CloseUtils;
 
 import java.io.File;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMessageAdapter {
     private final int port;
@@ -69,11 +72,13 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
             mServerAcceptor.exit();
         }
 
+        ClientHandler[] clientHandlers;
         synchronized (clientHandlerList) {
-            for (ClientHandler clientHandler : clientHandlerList) {
-                clientHandler.exit();
-            }
+            clientHandlers = clientHandlerList.toArray(new ClientHandler[0]);
             clientHandlerList.clear();
+        }
+        for (ClientHandler clientHandler : clientHandlers) {
+            clientHandler.exit();
         }
         CloseUtils.close(serverChannel);
 
@@ -83,7 +88,11 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
     void broadcast(String str) {
         str = "系统通知：" + str;
         synchronized (clientHandlerList) {
-            for (ClientHandler clientHandler : clientHandlerList) {
+            ClientHandler[] clientHandlers;
+            synchronized (clientHandlerList) {
+                clientHandlers = clientHandlerList.toArray(new ClientHandler[0]);
+            }
+            for (ClientHandler clientHandler : clientHandlers) {
                 sendMessageToClient(clientHandler, str);
             }
         }
@@ -119,6 +128,10 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
 
             // 添加关闭操作的责任链节点
             clientHandler.getCloseChain().appendLast(new RemoveQueueOnConnectorClosedChain());
+
+            // 添加空闲任务发送心跳包
+            SchedulerJob schedulerJob = new IdleTimeoutScheduleJob(10, TimeUnit.SECONDS, clientHandler);
+            clientHandler.schedule(schedulerJob);
 
             synchronized (clientHandlerList) {
                 clientHandlerList.add(clientHandler);

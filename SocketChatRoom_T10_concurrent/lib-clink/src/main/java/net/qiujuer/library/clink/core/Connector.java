@@ -13,6 +13,9 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -25,6 +28,7 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
     private Receiver receiver;
     private SendDispatcher sendDispatcher;
     private ReceiveDispatcher receiveDispatcher;
+    private final List<SchedulerJob> schedulerJobList = new ArrayList<>(4);
 
     private final ReceiveDispatcher.ReceivePacketCallback receivePacketCallback = new ReceiveDispatcher.ReceivePacketCallback() {
         @Override
@@ -46,6 +50,11 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
         @Override
         public void onReceivePacketCompleted(ReceivePacket packet) {
             onReceiveNewPacket(packet);
+        }
+
+        @Override
+        public void onReceiveHeartbeatCompleted() {
+            System.out.println("onReceiveHeartbeatCompleted: " + key.toString() + "- [Heartbeat]");
         }
     };
 
@@ -76,6 +85,34 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
         sendDispatcher.send(packet);
     }
 
+    public void schedule(SchedulerJob job) {
+        synchronized (schedulerJobList) {
+            if (schedulerJobList.contains(job)) {
+                return;
+            }
+            IoContext context = IoContext.get();
+            Scheduler scheduler = context.getScheduler();
+            job.schedule(scheduler);
+            schedulerJobList.add(job);
+        }
+    }
+
+    public void fireIdleTimeoutEvent() {
+        sendDispatcher.sendHeartbeat();
+    }
+
+    public void fireExceptionCaught(Throwable throwable) {
+
+    }
+
+    /**
+     * 获取最后一次活跃的时间点
+     */
+    public long getLastActiveTime() {
+        // 最后发送和接收消息的最靠后的时间点
+        return Math.max(sender.getLastWriteTime(), receiver.getLastReadTime());
+    }
+
     @Override
     public void close() throws IOException {
         receiveDispatcher.close();
@@ -87,6 +124,12 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
 
     @Override
     public void onChannelClosed(SocketChannel channel) {
+        synchronized (schedulerJobList) {
+            for (SchedulerJob job : schedulerJobList) {
+                job.unSchedule();
+            }
+            schedulerJobList.clear();
+        }
         CloseUtils.close(this);
     }
 
