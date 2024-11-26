@@ -1,6 +1,6 @@
 package net.qiujuer.lesson.sample.server;
 
-import net.qiujuer.lesson.sample.foo.handle.ClientHandler;
+import net.qiujuer.lesson.sample.foo.handle.ConnectorHandler;
 import net.qiujuer.lesson.sample.foo.handle.ConnectorStringPacketChain;
 import net.qiujuer.library.clink.box.StringReceivePacket;
 
@@ -9,7 +9,7 @@ import java.util.List;
 
 class Group {
     private final String name;
-    private final List<ClientHandler> memberList = new ArrayList<>();
+    private final List<ConnectorHandler> memberList = new ArrayList<>();
     private final GroupMessageAdapter adapter;
 
     public Group(String name, GroupMessageAdapter adapter) {
@@ -21,24 +21,24 @@ class Group {
         return name;
     }
 
-    boolean addMember(ClientHandler clientHandler) {
+    boolean addMember(ConnectorHandler connectorHandler) {
         synchronized (memberList) {
-            if (!memberList.contains(clientHandler)) {
-                memberList.add(clientHandler);
-                clientHandler.getStringPacketChain().appendLast(new ForwardConnectorStringPacketChain());
+            if (!memberList.contains(connectorHandler)) {
+                memberList.add(connectorHandler);
+                connectorHandler.getStringPacketChain().appendLast(new ForwardConnectorStringPacketChain());
 
-                System.out.println("Group[" + name + "] add new member: " + clientHandler.getClientInfo());
+                System.out.println("Group[" + name + "] add new member: " + connectorHandler.getClientInfo());
                 return true;
             }
         }
         return false;
     }
 
-    boolean removeMember(ClientHandler clientHandler) {
+    boolean removeMember(ConnectorHandler connectorHandler) {
         synchronized (memberList) {
-            if (memberList.remove(clientHandler)) {
-                clientHandler.getStringPacketChain().remove(ForwardConnectorStringPacketChain.class);
-                System.out.println("Group[" + name + "] leave a member: " + clientHandler.getClientInfo());
+            if (memberList.remove(connectorHandler)) {
+                connectorHandler.getStringPacketChain().remove(ForwardConnectorStringPacketChain.class);
+                System.out.println("Group[" + name + "] leave a member: " + connectorHandler.getClientInfo());
                 return true;
             }
         }
@@ -56,9 +56,9 @@ class Group {
          * @return true 表示消息被消费
          */
         @Override
-        protected boolean consume(ClientHandler handler, StringReceivePacket stringReceivePacket) {
+        protected boolean consume(ConnectorHandler handler, StringReceivePacket stringReceivePacket) {
             synchronized (memberList) {
-                for (ClientHandler member : memberList) {
+                for (ConnectorHandler member : memberList) {
                     if (member == handler) {
                         continue;
                     }
@@ -70,6 +70,6 @@ class Group {
     }
 
     interface GroupMessageAdapter {
-        void sendMessageToClient(ClientHandler handler, String msg);
+        void sendMessageToClient(ConnectorHandler handler, String msg);
     }
 }

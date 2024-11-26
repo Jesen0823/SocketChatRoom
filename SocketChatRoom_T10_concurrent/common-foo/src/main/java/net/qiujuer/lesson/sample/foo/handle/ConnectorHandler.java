@@ -13,7 +13,7 @@ import java.io.IOException;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Executor;
 
-public class ClientHandler extends Connector{
+public class ConnectorHandler extends Connector{
     private final String clientInfo;
     private final File cachePath;
     private final ConnectorCloseChain closeChain = new DefaultPrintConnectorCloseChain();
@@ -21,7 +21,7 @@ public class ClientHandler extends Connector{
     private final Executor deliveryPool;
 
 
-    public ClientHandler(SocketChannel socketChannel,  Executor deliveryPool, File cachePath) throws IOException {
+    public ConnectorHandler(SocketChannel socketChannel, Executor deliveryPool, File cachePath) throws IOException {
         this.deliveryPool = deliveryPool;
         this.clientInfo = socketChannel.getRemoteAddress().toString();
         this.cachePath = cachePath;

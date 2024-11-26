@@ -7,7 +7,7 @@ import net.qiujuer.library.clink.box.StringReceivePacket;
  */
 public class DefaultNonConnectorStringChain extends ConnectorStringPacketChain{
     @Override
-    protected boolean consume(ClientHandler handler, StringReceivePacket model) {
+    protected boolean consume(ConnectorHandler handler, StringReceivePacket model) {
         return false;
     }
 }

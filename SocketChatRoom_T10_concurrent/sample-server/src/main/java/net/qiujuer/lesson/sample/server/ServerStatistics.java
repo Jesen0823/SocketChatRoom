@@ -1,6 +1,6 @@
 package net.qiujuer.lesson.sample.server;
 
-import net.qiujuer.lesson.sample.foo.handle.ClientHandler;
+import net.qiujuer.lesson.sample.foo.handle.ConnectorHandler;
 import net.qiujuer.lesson.sample.foo.handle.ConnectorStringPacketChain;
 import net.qiujuer.library.clink.box.StringReceivePacket;
 
@@ -18,7 +18,7 @@ public class ServerStatistics {
     class StatisticsConnectorStringPacketChain extends ConnectorStringPacketChain{
 
         @Override
-        protected boolean consume(ClientHandler handler, StringReceivePacket model) {
+        protected boolean consume(ConnectorHandler handler, StringReceivePacket model) {
             // 接收数据
             receiveSize++;
             return false;

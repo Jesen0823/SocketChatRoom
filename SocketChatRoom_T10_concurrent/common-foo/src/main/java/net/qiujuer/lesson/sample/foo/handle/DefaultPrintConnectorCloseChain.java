@@ -7,7 +7,7 @@ import net.qiujuer.library.clink.core.Connector;
  */
 class DefaultPrintConnectorCloseChain extends ConnectorCloseChain {
     @Override
-    protected boolean consume(ClientHandler handler, Connector model) {
+    protected boolean consume(ConnectorHandler handler, Connector model) {
         System.out.println(handler.getClientInfo()+": Exit, key: "+handler.getKey().toString());
         return false;
     }
