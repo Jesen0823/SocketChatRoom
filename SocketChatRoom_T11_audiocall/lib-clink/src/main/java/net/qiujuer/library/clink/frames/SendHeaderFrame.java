@@ -2,6 +2,7 @@ package net.qiujuer.library.clink.frames;
 
 import net.qiujuer.library.clink.core.Frame;
 import net.qiujuer.library.clink.core.IoArgs;
+import net.qiujuer.library.clink.core.Packet;
 import net.qiujuer.library.clink.core.SendPacket;
 
 import java.io.IOException;
@@ -16,7 +17,7 @@ public class SendHeaderFrame extends AbsSendPacketFrame {
     private final byte[] body;
     static final int PACKET_HEADER_FRAME_MIN_LENGTH = 6;
 
-     public SendHeaderFrame(short identifier, SendPacket packet) {
+    public SendHeaderFrame(short identifier, SendPacket packet) {
         super(PACKET_HEADER_FRAME_MIN_LENGTH, Frame.TYPE_PACKET_HEADER, Frame.FLAG_NONE, identifier, packet);
 
         final long packetLength = packet.length();
@@ -39,14 +40,21 @@ public class SendHeaderFrame extends AbsSendPacketFrame {
     @Override
     protected int consumeBody(IoArgs args) throws IOException {
         int count = bodyRemaining;
-        int offset = body.length-count;
-        return args.readFrom(body,offset,count);
+        int offset = body.length - count;
+        return args.readFrom(body, offset, count);
     }
 
     @Override
     protected Frame buildNextFrame() {
-        InputStream stream = packet.open();
-        ReadableByteChannel channel = Channels.newChannel(stream);
-        return new SendEntityFrame(getBodyIdentifier(),packet.length(),channel,packet);
+        byte type = packet.type();
+        if (type == Packet.TYPE_STREAM_DIRECT) {
+            // 直流类型
+            return SendDirectEntityFrame.buildEntityFrame(packet, getBodyIdentifier());
+        } else {
+            // 普通类型
+            InputStream stream = packet.open();
+            ReadableByteChannel channel = Channels.newChannel(stream);
+            return new SendEntityFrame(getBodyIdentifier(), packet.length(), channel, packet);
+        }
     }
 }

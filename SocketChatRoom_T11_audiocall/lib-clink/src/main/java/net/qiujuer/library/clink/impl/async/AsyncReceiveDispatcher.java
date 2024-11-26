@@ -35,7 +35,7 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
     @Override
     public void close() throws IOException {
         if (isClosed.compareAndSet(false, true)) {
-           packetWriter.close();
+            packetWriter.close();
         }
     }
 
@@ -67,7 +67,7 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
 
     @Override
     public boolean onConsumeCompleted(IoArgs args) {
-        if (isClosed.get()){
+        if (isClosed.get()) {
             return false;
         }
         // 消费数据之前，标识已经完成
@@ -75,18 +75,24 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
         // 有数据才消费
         do {
             packetWriter.consumeIoArgs(args);
-        }while (args.remained() && !isClosed.get());
+        } while (args.remained() && !isClosed.get());
 
         // 接收下一次数据
         registerReceive();
         return true;
     }
 
+    /**
+     * 构建Packet,根据类型、长度构建一份用于接收数据的Packet
+     */
     @Override
     public ReceivePacket takePacket(byte type, long length, byte[] headerInfo) {
-        return receiveCallback.onArrivedNewPacket(type, length);
+        return receiveCallback.onArrivedNewPacket(type, length, headerInfo);
     }
 
+    /**
+     * 当Packet接收数据完成或终止时回调
+     */
     @Override
     public void completedPacket(ReceivePacket packet, boolean isSucceed) {
         CloseUtils.close(packet);
