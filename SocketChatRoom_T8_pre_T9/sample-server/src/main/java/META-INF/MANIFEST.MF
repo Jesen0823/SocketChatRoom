@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: org.jesen.im.sample.server.Server
+Class-Path: org.jesen.im.sample.server
+
