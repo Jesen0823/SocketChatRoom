@@ -16,18 +16,18 @@ public class Client {
         // 连接超时3000，连接本地端口2000
         socket.connect(new InetSocketAddress(Inet4Address.getLocalHost(), PORT_REMOTE), 3000);
 
-        System.out.println("已发起服务器连接，即将进入后续流程");
-        System.out.println("客户端信息：" + socket.getLocalAddress() + ":" + socket.getLocalPort());
-        System.out.println("服务端信息：" + socket.getInetAddress() + ":" + socket.getPort());
+        System.out.println("[C] 已发起服务器连接，即将进入后续流程");
+        System.out.println("[C] 客户端信息：" + socket.getLocalAddress() + ":" + socket.getLocalPort());
+        System.out.println("[C] 服务端信息：" + socket.getInetAddress() + ":" + socket.getPort());
 
         try {
             // 发送数据
             todo(socket);
         } catch (Exception e) {
-            System.out.println("异常关闭");
+            System.out.println("[C] 异常关闭");
         }
         socket.close();
-        System.out.println("客户端已退出");
+        System.out.println("[C] 客户端已退出");
     }
 
     private static Socket createSocket() throws IOException {
@@ -64,7 +64,7 @@ public class Client {
         // 是否复用未完全关闭的Socket地址，对于指定bind操作后的套接字有效
         socket.setReuseAddress(true);
 
-        // 是否开启Nagle算法
+        // 是否开启Nagle算法，开启后服务端会回送ACK确认消息
         socket.setTcpNoDelay(true);
 
         // 是否需要在长时无数据响应时发送确认数据（类似心跳包），时间大约为2小时
@@ -73,7 +73,7 @@ public class Client {
         // 对于close关闭操作行为进行怎样的处理；默认为false，0
         // false、0：默认情况，关闭时立即返回，底层系统接管输出流，将缓冲区内的数据发送完成
         // true、0：关闭时立即返回，缓冲区数据抛弃，直接发送RST结束命令到对方，并无需经过2MSL等待
-        // true、200：关闭时最长阻塞200毫秒，随后按第二情况处理
+        // true、20：关闭时最长阻塞20毫秒，随后按第二情况处理
         socket.setSoLinger(true, 20);
 
         // 是否让紧急数据内敛，默认false；紧急数据通过 socket.sendUrgentData(1);发送
@@ -83,8 +83,8 @@ public class Client {
         socket.setReceiveBufferSize(64 * 1024 * 1024);
         socket.setSendBufferSize(64 * 1024 * 1024);
 
-        // 设置性能参数：短链接，延迟，带宽的相对重要性
-        socket.setPerformancePreferences(1, 1, 0);
+        // 设置性能参数：短链接，延迟，带宽的相对重要性，三者的权重
+        socket.setPerformancePreferences(1, 1, 1);
     }
     
     private static void todo(Socket client) throws IOException {
@@ -112,7 +112,7 @@ public class Client {
         byteBuffer.put(b ? (byte) 1 : (byte) 0);
 
         // Long
-        long l = 298789739;
+        long l = 298789739L;
         byteBuffer.putLong(l);
 
 
@@ -134,7 +134,7 @@ public class Client {
 
         // 接收服务器返回
         int read = inputStream.read(buffer);
-        System.out.println("收到数量：" + read);
+        System.out.println("[C] 收到数量：" + read);
 
         // 资源释放
         outputStream.close();

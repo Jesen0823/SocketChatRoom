@@ -7,12 +7,17 @@ import java.net.Socket;
 
 public class Server {
 
+    private static void printInfoServer(String msg) {
+        System.out.println("[Server] - " + msg);
+    }
+
     public static void main(String[] args) throws IOException {
+
         ServerSocket serverSocket = new ServerSocket(2000);
 
-        System.out.println("服务端准备就绪，即将进入后续流程");
-        System.out.println("服务端信息：" + serverSocket.getInetAddress() + ":" + serverSocket.getLocalPort());
-        System.out.println("等待客户端连接...");
+        printInfoServer("服务端准备就绪，即将进入后续流程");
+        printInfoServer("服务端信息:" + serverSocket.getInetAddress() + ":" + serverSocket.getLocalPort());
+        printInfoServer("等待客户端连接...");
 
         //等待客户端连接
         for (; ; ) {
@@ -41,7 +46,7 @@ public class Server {
         @Override
         public void run() {
             super.run();
-            System.out.println("客户端信息：" + socket.getInetAddress() + ":" + socket.getPort());
+            printInfoServer("我连接的客户端是：" + socket.getInetAddress() + ":" + socket.getPort());
 
             try {
                 // 打印流，用来回送数据
@@ -51,30 +56,31 @@ public class Server {
                 do {
                     // 客户端收到一条信息
                     String str = br.readLine();
-                    if("bye".equalsIgnoreCase(str)){
+                    if ("bye".equalsIgnoreCase(str)) {
                         exit = true;
                         // 客户端回送
+                        printInfoServer("客户端说bye了,那我也准备退出");
                         ps.println("bye");
-                    }else {
+                    } else {
                         // 收到数据，打印展示
-                        System.out.println(str);
-                        // 回送一条
-                        ps.println("回送长度："+str.length());
+                        printInfoServer("收到来自客户端的消息：" + str);
+                        // 回送一条给服务端
+                        ps.println("客户端，你发送给我的消息有这么长: " + str.length());
                     }
-                }while (!exit);
+                } while (!exit);
 
                 ps.close();
                 br.close();
             } catch (Exception e) {
-                System.out.println("服务器异常断开");
-            }finally {
+                printInfoServer("服务器异常断开");
+            } finally {
                 try {
                     socket.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-            System.out.println("客户端已关闭");
+            printInfoServer("客户端已关闭");
         }
     }
 }

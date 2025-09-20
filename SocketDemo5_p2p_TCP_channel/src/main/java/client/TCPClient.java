@@ -1,8 +1,7 @@
 package client;
 
 import client.bean.ServerInfo;
-import clink.net.qiujuer.clink.utils.CloseUtils;
-import server.handle.ClientHandler;
+import clink.org.jesen.clink.utils.CloseUtils;
 
 import java.io.*;
 import java.net.Inet4Address;
@@ -20,9 +19,9 @@ public class TCPClient {
         // 连接本地，端口2000；超时时间3000ms
         socket.connect(new InetSocketAddress(Inet4Address.getByName(info.getAddress()), info.getPort()), 3000);
 
-        System.out.println("已发起服务器连接，并进入后续流程～");
-        System.out.println("客户端信息：" + socket.getLocalAddress() + " P:" + socket.getLocalPort());
-        System.out.println("服务器信息：" + socket.getInetAddress() + " P:" + socket.getPort());
+        System.out.println("[C]-已发起服务器连接，并进入后续流程～");
+        System.out.println("[C]-客户端信息：" + socket.getLocalAddress() + " P:" + socket.getLocalPort());
+        System.out.println("[C]-服务器信息：" + socket.getInetAddress() + " P:" + socket.getPort());
 
         try {
             ReadHandler readHandler = new ReadHandler(socket.getInputStream());
@@ -34,12 +33,12 @@ public class TCPClient {
             // 退出
             readHandler.exit();
         } catch (Exception e) {
-            System.out.println("异常关闭");
+            System.out.println("[C]-异常关闭");
         }
 
         // 释放资源
         socket.close();
-        System.out.println("客户端已退出～");
+        System.out.println("[C]-客户端已退出～");
     }
 
     // 输出
@@ -84,22 +83,22 @@ public class TCPClient {
                 do {
                     // 客户端拿到一条数据
                     String str;
-                   try{
-                       str = socketInput.readLine();
-                   }catch (SocketTimeoutException e){
-                       continue;
-                   }
+                    try {
+                        str = socketInput.readLine();
+                    } catch (SocketTimeoutException e) {
+                        continue;
+                    }
                     if (str == null) {
-                        System.out.println("连接已关闭，无法读取数据");
+                        System.out.println("[C]-连接已关闭，无法读取数据");
                         break;
                     }
                     // 打印到屏幕
-                    System.out.println(str);
+                    System.out.println("[C]-收到：" + str);
                 } while (!done);
 
             } catch (Exception e) {
                 if (!done) {
-                    System.out.println("连接异常断开: "+e.getMessage());
+                    System.out.println("[C]-连接异常断开: " + e.getMessage());
                 }
             } finally {
                 CloseUtils.close(inputStream);

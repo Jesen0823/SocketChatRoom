@@ -17,20 +17,20 @@ public class TCPClient {
         // 连接本地，端口2000；超时时间3000ms
         socket.connect(new InetSocketAddress(Inet4Address.getByName(info.getAddress()), info.getPort()), 3000);
 
-        System.out.println("已发起服务器连接，并进入后续流程～");
-        System.out.println("客户端信息：" + socket.getLocalAddress() + " P:" + socket.getLocalPort());
-        System.out.println("服务器信息：" + socket.getInetAddress() + " P:" + socket.getPort());
+        System.out.println("[C] 已发起服务器连接，并进入后续流程～");
+        System.out.println("[C] 客户端信息：" + socket.getLocalAddress() + " P:" + socket.getLocalPort());
+        System.out.println("[C] 连接到服务器：" + socket.getInetAddress() + " P:" + socket.getPort());
 
         try {
             // 发送接收数据
             todo(socket);
         } catch (Exception e) {
-            System.out.println("异常关闭");
+            System.out.println("[C] 异常关闭");
         }
 
         // 释放资源
         socket.close();
-        System.out.println("客户端已退出～");
+        System.out.println("[C] 客户端已退出～");
     }
 
     private static void todo(Socket client) throws IOException {
@@ -58,7 +58,7 @@ public class TCPClient {
             if ("bye".equalsIgnoreCase(echo)) {
                 flag = false;
             } else {
-                System.out.println(echo);
+                System.out.println("[C] 收到信息："+echo);
             }
         } while (flag);
 

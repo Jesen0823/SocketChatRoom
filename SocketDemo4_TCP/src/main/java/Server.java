@@ -4,6 +4,7 @@ import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
 public class Server {
     private static final int PORT = 20000;
@@ -13,9 +14,9 @@ public class Server {
 
         initServerSocket(serverSocket);
 
-        System.out.println("服务端准备就绪，即将进入后续流程");
-        System.out.println("服务端信息：" + serverSocket.getInetAddress() + ":" + serverSocket.getLocalPort());
-        System.out.println("等待客户端连接...");
+        System.out.println("[S] 服务端准备就绪，即将进入后续流程");
+        System.out.println("[S] 服务端信息：" + serverSocket.getInetAddress() + ":" + serverSocket.getLocalPort());
+        System.out.println("[S] 等待客户端连接...");
 
         // 绑定到本地端口上
         serverSocket.bind(new InetSocketAddress(Inet4Address.getLocalHost(), PORT), 50);
@@ -76,28 +77,48 @@ public class Server {
         @Override
         public void run() {
             super.run();
-            System.out.println("客户端信息：" + socket.getInetAddress() + ":" + socket.getPort());
+            System.out.println("[S] 客户端信息：" + socket.getInetAddress() + ":" + socket.getPort());
 
             try {
                 // 得到套接字流
                 OutputStream outputStream = socket.getOutputStream();
                 InputStream inputStream = socket.getInputStream();
 
-                byte[] buffer = new byte[128];
+                byte[] buffer = new byte[256];
                 int readCount = inputStream.read(buffer);
+                // 按顺序读取
+                ByteBuffer byteBuffer = ByteBuffer.wrap(buffer, 0, readCount);
+                byte be = byteBuffer.get();
+                char c = byteBuffer.getChar();
+                int i = byteBuffer.getInt();
+                boolean bl = byteBuffer.get() == 1;
+                long l = byteBuffer.getLong();
+                float f = byteBuffer.getFloat();
+                double db = byteBuffer.getDouble();
+                int pos = byteBuffer.position();
+                String str = new String(buffer, pos, readCount - pos - 1);
+
                 if (readCount > 0) {
-                    System.out.println("收到数量：" + readCount + ", 数据：" + Array.getByte(buffer,0));
+                    System.out.println("[S] 收到数量：" + readCount + ", 数据：\n"
+                            + be + "\n"
+                            + c + "\n"
+                            + i + "\n"
+                            + bl + "\n"
+                            + l + "\n"
+                            + f + "\n"
+                            + db + "\n"
+                            + str + "\n");
                     // 回送原数据
                     outputStream.write(buffer, 0, readCount);
                 } else {
-                    System.out.println("收到数量：" + readCount);
+                    System.out.println("[S] 收到数量：" + readCount);
                     // 回送空数据
                     outputStream.write(new byte[]{0});
                 }
                 inputStream.close();
                 outputStream.close();
             } catch (Exception e) {
-                System.out.println("服务器异常断开");
+                System.out.println("[S] 服务器异常断开");
             } finally {
                 try {
                     socket.close();
@@ -105,7 +126,7 @@ public class Server {
                     e.printStackTrace();
                 }
             }
-            System.out.println("客户端已关闭");
+            System.out.println("[S] 客户端已关闭");
         }
     }
 }

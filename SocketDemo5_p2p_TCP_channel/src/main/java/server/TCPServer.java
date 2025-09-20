@@ -55,14 +55,14 @@ public class TCPServer {
 
         public ClientListener(int port) throws IOException {
             serverSocket = new ServerSocket(port);
-            System.out.println("TCPServer ClientListener, 服务器信息：" + serverSocket.getInetAddress() + "port:" + serverSocket.getLocalPort());
+            System.out.println("[S]- TCPServer ClientListener, 服务器信息：" + serverSocket.getInetAddress() + "port:" + serverSocket.getLocalPort());
         }
 
         @Override
         public void run() {
             super.run();
 
-            System.out.println("服务器准备就绪~");
+            System.out.println("[S]- 服务器准备就绪~");
             // 等待连接客户端
             do {
                 // 得到客户端
@@ -85,10 +85,10 @@ public class TCPServer {
                     clientHandlerList.add(clientHandler);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    System.out.println("客户端连接异常："+e.getMessage());
+                    System.out.println("[S]- 客户端连接异常：" + e.getMessage());
                 }
             } while (!done);
-            System.out.println("服务器已关闭");
+            System.out.println("[S]- 服务器已关闭");
         }
 
         public void exit() {

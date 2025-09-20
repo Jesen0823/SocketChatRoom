@@ -1,6 +1,6 @@
 package server.handle;
 
-import clink.net.qiujuer.clink.utils.CloseUtils;
+import clink.org.jesen.clink.utils.CloseUtils;
 
 import java.io.*;
 import java.net.Socket;
@@ -19,7 +19,7 @@ public class ClientHandler {
         this.writeHandler = new ClientWriteHandler(socket.getOutputStream());
         this.closeNotify = closeNotify;
 
-        System.out.println("新客户端连接：" + socket.getInetAddress() + ",Port:" + socket.getPort());
+        System.out.println("[C]- 新客户端连接：" + socket.getInetAddress() + ",Port:" + socket.getPort());
     }
 
     public void send(String str) {
@@ -31,7 +31,7 @@ public class ClientHandler {
         writeHandler.exit();
         CloseUtils.close(socket);
 
-        System.out.println("客户端已退出， " + socket.getInetAddress() + ",port:" + socket.getPort());
+        System.out.println("[C]-客户端已退出， " + socket.getInetAddress() + ",port:" + socket.getPort());
     }
 
     public void readToPrint() {
@@ -43,7 +43,7 @@ public class ClientHandler {
         closeNotify.onSelfClosed(this);
     }
 
-    public interface CloseNotify{
+    public interface CloseNotify {
         void onSelfClosed(ClientHandler handler);
     }
 
@@ -66,18 +66,18 @@ public class ClientHandler {
                     // 客户端拿到一条数据
                     String str = socketInput.readLine();
                     if (str == null) {
-                        System.out.println("客户端已无法读取");
+                        System.out.println("[C]-客户端已无法读取");
                         // 退出当前客户端
                         ClientHandler.this.exitBySelf();
                         break;
                     }
                     // 打印到屏幕
-                    System.out.println(str);
+                    System.out.println("[C]-收到：" + str);
                 } while (!done);
 
             } catch (Exception e) {
                 if (!done) {
-                    System.out.println("连接异常断开");
+                    System.out.println("[C]-连接异常断开");
                     ClientHandler.this.exitBySelf();
                 }
             } finally {
@@ -112,7 +112,7 @@ public class ClientHandler {
             executorService.execute(new WriteRunnable(str));
         }
 
-        class WriteRunnable implements Runnable{
+        class WriteRunnable implements Runnable {
             private final String msg;
 
             WriteRunnable(String msg) {
@@ -121,12 +121,12 @@ public class ClientHandler {
 
             @Override
             public void run() {
-                if (ClientWriteHandler.this.done){
+                if (ClientWriteHandler.this.done) {
                     return;
                 }
                 try {
                     ClientWriteHandler.this.printStream.println(msg);
-                }catch (Exception e){
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
 

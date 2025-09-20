@@ -1,6 +1,6 @@
 package server;
 
-import clink.net.qiujuer.clink.utils.ByteUtils;
+import clink.org.jesen.clink.utils.ByteUtils;
 import constants.UDPConstants;
 
 import java.net.DatagramPacket;
@@ -60,10 +60,11 @@ public class ServerProvider {
                     int clientPort = receivePack.getPort();
                     int clientDataLen = receivePack.getLength();
                     byte[] clientData = receivePack.getData();
-
-                    boolean isValid = clientDataLen >= (UDPConstants.HEADER.length + 2 + 4) && ByteUtils.startsWith(clientData, UDPConstants.HEADER);
+                    // UDPConstants.HEADER + cmd(Short两字节) + int(4字节)
+                    boolean isValid = clientDataLen >= (UDPConstants.HEADER.length + 2 + 4)
+                            && ByteUtils.startsWith(clientData, UDPConstants.HEADER);
                     System.out.println("Provider receive form ip:" + clientIp
-                            + "\tport:" + clientPort + "\tdataValid:" + isValid);
+                            + "\t port:" + clientPort + "\tdataValid:" + isValid);
                     if (!isValid) {
                         // 无效继续
                         continue;
@@ -97,7 +98,7 @@ public class ServerProvider {
                     }
                 }
             } catch (Exception e) {
-
+                e.printStackTrace();
             } finally {
                 close();
             }

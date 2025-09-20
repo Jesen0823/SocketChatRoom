@@ -1,4 +1,4 @@
 Manifest-Version: 1.0
-Main-Class: net.qiujuer.lesson.sample.server.Server
-Class-Path: net.qiujuer.lesson.sample.server
+Main-Class: org.jesen.im.sample.server.Server
+Class-Path: org.jesen.im.sample.server
 

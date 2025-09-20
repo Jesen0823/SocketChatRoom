@@ -1,7 +1,7 @@
 package client;
 
 import client.bean.ServerInfo;
-import clink.net.qiujuer.clink.utils.ByteUtils;
+import clink.org.jesen.clink.utils.ByteUtils;
 import constants.UDPConstants;
 
 import java.io.IOException;
@@ -140,9 +140,9 @@ public class ClientSearcher {
                     receiveDownLatch.countDown();
                 }
             } catch (Exception e) {
-
+                e.printStackTrace();
             } finally {
-
+                close();
             }
         }
 

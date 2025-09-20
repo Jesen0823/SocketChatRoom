@@ -27,16 +27,16 @@ replay_pid*
 
 *.iml
 .gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+local.properties  # 去掉开头的/，匹配所有子目录
+.idea/caches       # 去掉开头的/，匹配所有子目录的.idea/caches
+.idea/libraries
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
 .DS_Store
-/build
-/captures
-.externalNativeBuild
-.cxx
+build/             # 去掉开头的/，匹配所有子目录的build
+captures/
+.externalNativeBuild/
+.cxx/
 local.properties

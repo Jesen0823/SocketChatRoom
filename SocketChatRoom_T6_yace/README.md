@@ -25,7 +25,7 @@ CPU消耗50%， 内存占用很高，线程数量爆发。
 #### 优化：
 
 1. 减少线程数量
-2. 增加线程执行繁忙状态，减少线程空闲等待时间与线程切换时间
+2. 大部分时间线程空转，等待发送与接受数据。所以，增加线程执行繁忙状态，减少线程空闲等待时间与线程切换时间
 3. 内存，加客户端Buffer复用机制
 
 
@@ -52,7 +52,7 @@ NIO可以并发异步读写数据。
 ##### NIO的API
 
 Selector:向Selector注册一个事件，对应Channel的状态
-Channel:Channel状态变化时，触发注册的事件
+Channel:Channel状态变化时，也就是可读或可写时，触发注册的事件
 Buffer:
 
 注册事件：
@@ -66,6 +66,8 @@ Selector使用流程：
 * register() 将一个Channel注册到选择器，当选择器触发对应关注事件时，回调到Channel中，处理相关数据。
 * select()/selectNow() 一个通道Channel，处理一个当前可用，待处理的通道数据。是阻塞操作。
 * selectedKeys()拿到当前就绪的通道。
+* wakeUp() 唤醒一个处于select状态的选择器
+* close() 关闭一个选择器，注销所有关注的事件
 
 FileChannel不能用于Selector,因为FileChannel不能切换为非阻塞模式。
 

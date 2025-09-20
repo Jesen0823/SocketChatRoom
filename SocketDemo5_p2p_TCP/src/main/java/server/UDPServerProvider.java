@@ -1,6 +1,6 @@
 package server;
 
-import clink.net.qiujuer.clink.utils.ByteUtils;
+import clink.org.jesen.clink.utils.ByteUtils;
 import constants.UDPConstants;
 
 import java.net.DatagramPacket;
@@ -44,7 +44,7 @@ public class UDPServerProvider {
         public void run() {
             super.run();
 
-            System.out.println("Provider start");
+            System.out.println("[S] Provider start");
 
             try {
                 // 监听服务器端口
@@ -62,7 +62,7 @@ public class UDPServerProvider {
                     byte[] clientData = receivePack.getData();
 
                     boolean isValid = clientDataLen >= (UDPConstants.HEADER.length + 2 + 4) && ByteUtils.startsWith(clientData, UDPConstants.HEADER);
-                    System.out.println("Provider receive form ip:" + clientIp
+                    System.out.println("[S] Provider receive form ip:" + clientIp
                             + "\tport:" + clientPort + "\tdataValid:" + isValid);
                     if (!isValid) {
                         // 无效继续
@@ -76,12 +76,12 @@ public class UDPServerProvider {
                             ((clientData[index++] & 0xff) << 8) |
                             ((clientData[index] & 0xff)));
 
-                    // 判断合法性
+                    // 判断合法性，cmd==1说明是搜索命令
                     if (cmd == 1 && responsePort > 0) {
                         // 构建一份回送数据
                         ByteBuffer byteBuffer = ByteBuffer.wrap(buffer);
                         byteBuffer.put(UDPConstants.HEADER);
-                        byteBuffer.putShort((short) 2);
+                        byteBuffer.putShort((short) 2); // 回送命令
                         byteBuffer.putInt(port);
                         byteBuffer.put(sn);
                         int len = byteBuffer.position();
@@ -91,18 +91,18 @@ public class UDPServerProvider {
                                 receivePack.getAddress(),
                                 responsePort);
                         ds.send(responsePacket);
-                        System.out.println("Provider response to:" + clientIp + "\tport:" + responsePort + "\tdataLen:" + len);
+                        System.out.println("[S] Provider response to:" + clientIp + "\tport:" + responsePort + "\tdataLen:" + len);
                     } else {
-                        System.out.println("Provider receive cmd nonsupport; cmd:" + cmd + "\tport:" + port);
+                        System.out.println("[S] Provider receive cmd nonsupport; cmd:" + cmd + "\tport:" + port);
                     }
                 }
             } catch (Exception e) {
-
+                e.printStackTrace();
             } finally {
                 close();
             }
             // 完成
-            System.out.println("Provider Finished.");
+            System.out.println("[S] Provider Finished.");
         }
 
         public void exit() {

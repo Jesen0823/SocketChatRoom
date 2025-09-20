@@ -52,6 +52,7 @@ NIO可以并发异步读写数据。
 ##### NIO的API
 
 Selector:向Selector注册一个事件，对应Channel的状态
+
 Channel:Channel状态变化时，触发注册的事件
 Buffer:
 
@@ -72,6 +73,10 @@ FileChannel不能用于Selector,因为FileChannel不能切换为非阻塞模式�
 项目虽然用NIO改写为非阻塞操作，但是各个操作都是在一个线程，并没有做到真正意义的异步操作，效率还是不够高
 
 可以对线程进行优化，参见【SocketChatRoom_T7_NIO_thread】
+
+------------------------
+
+该工程将服务端代码做了NIO的重构。
 
 
 

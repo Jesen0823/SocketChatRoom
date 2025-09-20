@@ -43,12 +43,12 @@
 >   是UDP的发送和接收实体
 
 ```java
-DatagramPacket(byte[l buf, int offset, int length, InetAddress
+DatagramPacket(byte[] buf, int offset, int length, InetAddress
 address, int port)
 // 前面3个参数指定buf的使用区间
 // 后面2个参数指定目标机器地址与端口,发送时有效
 
-DatagramPacket(byte[l buf int length, SocketAddress
+DatagramPacket(byte[] buf int length, SocketAddress
 address)
 // 前面3个参数指定buf的使用区间
 // SocketAddress相当于InetAddress+Port

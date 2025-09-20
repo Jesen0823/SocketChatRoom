@@ -4,6 +4,11 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 
 public class Client {
+
+    private static void printInfoClient(String msg) {
+        System.out.println("[Client] - " + msg);
+    }
+
     public static void main(String[] args) throws IOException {
         Socket socket = new Socket();
         // 读取流超时时间
@@ -11,18 +16,18 @@ public class Client {
         // 连接超时3000，连接本地端口2000
         socket.connect(new InetSocketAddress(Inet4Address.getLocalHost(), 2000), 3000);
 
-        System.out.println("已发起服务器连接，即将进入后续流程");
-        System.out.println("客户端信息：" + socket.getLocalAddress() + ":" + socket.getLocalPort());
-        System.out.println("服务端信息：" + socket.getInetAddress() + ":" + socket.getPort());
+        printInfoClient("已发起服务器连接，即将进入后续流程");
+        printInfoClient("客户端信息:" + socket.getLocalAddress() + ":" + socket.getLocalPort());
+        printInfoClient("服务端信息:" + socket.getInetAddress() + ":" + socket.getPort());
 
         try {
             // 发送数据
             todo(socket);
         } catch (Exception e) {
-            System.out.println("异常关闭");
+            printInfoClient("异常关闭");
         }
         socket.close();
-        System.out.println("客户端已退出");
+        printInfoClient("客户端已退出");
     }
 
     private static void todo(Socket client) throws IOException {
@@ -44,14 +49,15 @@ public class Client {
             // 从键盘读取一行
             String str = br.readLine();
             // 发送到服务器
-            ps.println(str);
+            ps.println("服务端，我是客户端, 我想说: " + str);
 
             // 从服务器读取一行返回信息
             String echo = brs.readLine();
             if ("bye".equalsIgnoreCase(echo)) {
+                printInfoClient("服务端说bye,那我准备退出");
                 exit = true;
-            }else {
-                System.out.println(echo);
+            } else {
+                printInfoClient("收到来自服务端消息:" + echo);
             }
         } while (!exit);
 

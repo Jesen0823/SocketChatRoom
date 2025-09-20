@@ -11,7 +11,7 @@ public class Server {
         TCPServer tcpServer = new TCPServer(TCPConstants.PORT_SERVER);
         boolean isSucceed = tcpServer.start();
         if (!isSucceed){
-            System.out.println("Start TCP server failed!");
+            System.out.println("[S]- Start TCP server failed!");
             return;
         }
 
@@ -21,8 +21,9 @@ public class Server {
         String str;
         do {
             str = bufferedReader.readLine();
+            // 给所有客户端发送信息
             tcpServer.broadcast(str);
-        }while ("00bye00".equalsIgnoreCase(str));
+        }while (!"00bye00".equalsIgnoreCase(str));
 
         UDPServerProvider.stop();
         tcpServer.stop();

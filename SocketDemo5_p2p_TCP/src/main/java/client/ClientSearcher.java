@@ -1,7 +1,7 @@
 package client;
 
 import client.bean.ServerInfo;
-import clink.net.qiujuer.clink.utils.ByteUtils;
+import clink.org.jesen.clink.utils.ByteUtils;
 import constants.UDPConstants;
 
 import java.io.IOException;
@@ -16,7 +16,7 @@ public class  ClientSearcher {
     private static final int LISTEN_PORT = UDPConstants.PORT_CLIENT_RESPONSE;
 
     public static ServerInfo searchServer(int timeout) {
-        System.out.println("ClientSearcher start");
+        System.out.println("[C] ClientSearcher start");
 
         // 成功收到回送的栅栏
         CountDownLatch receiveLatch = new CountDownLatch(1);
@@ -24,12 +24,13 @@ public class  ClientSearcher {
         try{
             listener = listen(receiveLatch);
             sendBroadcast();
+            // 等待服务器回送
             receiveLatch.await(timeout, TimeUnit.MILLISECONDS);
         }catch (Exception e){
             e.printStackTrace();
         }
         // 完成
-        System.out.println("ClientSearcher finished");
+        System.out.println("[C] ClientSearcher finished");
         if (listener == null){
             return null;
         }
@@ -41,7 +42,7 @@ public class  ClientSearcher {
     }
 
     private static void sendBroadcast() throws IOException {
-        System.out.println("ClientSearcher start sendBroadcast");
+        System.out.println("[C] ClientSearcher start sendBroadcast");
         // 作为搜索方，让系统自动分配端口
         DatagramSocket ds = new DatagramSocket();
 
@@ -65,11 +66,11 @@ public class  ClientSearcher {
         ds.send(requestPacket);
         ds.close();
         // 完成
-        System.out.println("ClientSearcher sendBroadcast finished.");
+        System.out.println("[C] ClientSearcher sendBroadcast finished.");
     }
 
     private static Listener listen(CountDownLatch receiveLatch) throws InterruptedException {
-        System.out.println("ClientSearcher start listen");
+        System.out.println("[C] ClientSearcher start listen");
         CountDownLatch startDownLatch = new CountDownLatch(1);
         Listener listener = new Listener(LISTEN_PORT,startDownLatch,receiveLatch);
         listener.start();
@@ -117,7 +118,7 @@ public class  ClientSearcher {
                     boolean isValid = dataLen >= minLen
                             && ByteUtils.startsWith(data, UDPConstants.HEADER);
 
-                    System.out.println("UDPSearcher receive form ip:" + ip
+                    System.out.println("[C] UDPSearcher receive form ip:" + ip
                             + "\tport:" + port + "\tdataValid:" + isValid);
 
                     if (!isValid) {
@@ -129,7 +130,7 @@ public class  ClientSearcher {
                     final short cmd = byteBuffer.getShort();
                     final int serverPort = byteBuffer.getInt();
                     if (cmd != 2 || serverPort <= 0) {
-                        System.out.println("UDPSearcher receive cmd:" + cmd + "\tserverPort:" + serverPort);
+                        System.out.println("[C] UDPSearcher receive cmd:" + cmd + "\tserverPort:" + serverPort);
                         continue;
                     }
 

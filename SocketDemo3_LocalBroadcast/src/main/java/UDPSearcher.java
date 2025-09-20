@@ -10,61 +10,68 @@ import java.util.concurrent.CountDownLatch;
 public class UDPSearcher {
     private static final int LISTEN_PORT = 30000;
 
-    public static void main(String[] args) throws SocketException, IOException, InterruptedException {
-        System.out.println("UDPSearcher start");
 
-        // 监听3000端口，等待接收各设备回复
+    public static void main(String[] args) throws IOException, InterruptedException {
+        System.out.println("UDPSearcher Started.");
+
         Listener listener = listen();
-        // 向各设备发送广播
         sendBroadcast();
 
-        // 读取任意键盘信息退出
+        // 读取任意键盘信息后可以退出
         System.in.read();
+
         List<Device> devices = listener.getDevicesAndClose();
+
         for (Device device : devices) {
-            System.out.println("UDPSearcher device: "+device.toString());
+            System.out.println("Device:" + device.toString());
         }
-        System.out.println("UDPSearcher end");
+
+        // 完成
+        System.out.println("UDPSearcher Finished.");
     }
 
     private static Listener listen() throws InterruptedException {
-        System.out.println("UDPSearcher listener start");
+        System.out.println("UDPSearcher start listen.");
         CountDownLatch countDownLatch = new CountDownLatch(1);
-        Listener listener = new Listener(LISTEN_PORT,countDownLatch);
+        Listener listener = new Listener(LISTEN_PORT, countDownLatch);
         listener.start();
 
         countDownLatch.await();
+        System.out.println("listener is start success.");
         return listener;
     }
 
     private static void sendBroadcast() throws IOException {
-        System.out.println("UDPSearcher sendBroadcast start");
+        System.out.println("UDPSearcher sendBroadcast started.");
 
-        // 搜索方无需指定端口，让系统分配端口
-        DatagramSocket socket = new DatagramSocket();
-        // 构建请求数据
+        // 作为搜索方，让系统自动分配端口
+        DatagramSocket ds = new DatagramSocket();
+
+
+        // 构建一份请求数据
         String requestData = MessageCreator.buildWithPort(LISTEN_PORT);
         byte[] requestDataBytes = requestData.getBytes();
-        DatagramPacket requestPack = new DatagramPacket(
-                requestDataBytes,
-                requestDataBytes.length
-        );
-        // 本机端口
-        requestPack.setAddress(InetAddress.getByName("255.255.255.255"));
-        requestPack.setPort(20000);
-        // 给发送端回复
-        socket.send(requestPack);
-        socket.close();
+        // 直接构建packet
+        DatagramPacket requestPacket = new DatagramPacket(requestDataBytes,
+                requestDataBytes.length);
+        // 20000端口, 广播地址
+        requestPacket.setAddress(InetAddress.getByName("255.255.255.255"));
+        requestPacket.setPort(20000);
 
-        System.out.println("UDPSearcher sendBroadcast end");
+        // 发送
+        ds.send(requestPacket);
+        ds.close();
+
+        // 完成
+        System.out.println("UDPSearcher sendBroadcast finished.");
     }
 
     private static class Device {
-        int port;
-        String ip;
-        String sn;
+        final int port;
+        final String ip;
+        final String sn;
 
-        public Device(int port, String ip, String sn) {
+        private Device(int port, String ip, String sn) {
             this.port = port;
             this.ip = ip;
             this.sn = sn;
@@ -81,52 +88,61 @@ public class UDPSearcher {
     }
 
     private static class Listener extends Thread {
-        private final int listenerPort;
+        private final int listenPort;
         private final CountDownLatch countDownLatch;
-        private final List<Device> deviceList = new ArrayList<>();
+        private final List<Device> devices = new ArrayList<>();
         private boolean done = false;
         private DatagramSocket ds = null;
 
-        public Listener(int listenerPort, CountDownLatch countDownLatch) {
+
+        public Listener(int listenPort, CountDownLatch countDownLatch) {
             super();
-            this.listenerPort = listenerPort;
+            this.listenPort = listenPort;
             this.countDownLatch = countDownLatch;
         }
 
         @Override
         public void run() {
             super.run();
-
+            System.out.println("Listener in run...");
+            // 通知已启动
             countDownLatch.countDown();
+
             try {
                 // 监听回送端口
-                ds = new DatagramSocket(listenerPort);
+                ds = new DatagramSocket(listenPort);
+
+
                 while (!done) {
                     // 构建接收实体
-                    final byte[] bufs = new byte[512];
-                    DatagramPacket receivePack = new DatagramPacket(bufs, bufs.length);
+                    final byte[] buf = new byte[512];
+                    DatagramPacket receivePack = new DatagramPacket(buf, buf.length);
+
                     // 接收
                     ds.receive(receivePack);
-                    // 打印发送者信息，收到的信息
+
+                    // 打印接收到的信息与发送者的信息
+                    // 发送者的IP地址
                     String ip = receivePack.getAddress().getHostAddress();
                     int port = receivePack.getPort();
                     int dataLen = receivePack.getLength();
                     String data = new String(receivePack.getData(), 0, dataLen);
-                    System.out.println("UDPSearcher receive from ip[" + ip + " :" + port + "] data: " + data);
+                    System.out.println("UDPSearcher receive form ip:" + ip
+                            + "\tport:" + port + "\tdata:" + data);
 
                     String sn = MessageCreator.parseSN(data);
                     if (sn != null) {
                         Device device = new Device(port, ip, sn);
-                        deviceList.add(device);
+                        devices.add(device);
                     }
                 }
-
-            } catch (Exception e) {
+            } catch (Exception ignored) {
 
             } finally {
                 close();
             }
-            System.out.println("UDPSearcher listener end");
+            System.out.println("UDPSearcher listener finished.");
+
         }
 
         private void close() {
@@ -139,7 +155,7 @@ public class UDPSearcher {
         List<Device> getDevicesAndClose() {
             done = true;
             close();
-            return deviceList;
+            return devices;
         }
     }
 }

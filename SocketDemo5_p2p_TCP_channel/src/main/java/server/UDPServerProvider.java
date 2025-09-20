@@ -1,6 +1,6 @@
 package server;
 
-import clink.net.qiujuer.clink.utils.ByteUtils;
+import clink.org.jesen.clink.utils.ByteUtils;
 import constants.UDPConstants;
 
 import java.net.DatagramPacket;
@@ -44,7 +44,7 @@ public class UDPServerProvider {
         public void run() {
             super.run();
 
-            System.out.println("Provider start");
+            System.out.println("[S]-P Provider start");
 
             try {
                 // 监听服务器端口
@@ -62,7 +62,7 @@ public class UDPServerProvider {
                     byte[] clientData = receivePack.getData();
 
                     boolean isValid = clientDataLen >= (UDPConstants.HEADER.length + 2 + 4) && ByteUtils.startsWith(clientData, UDPConstants.HEADER);
-                    System.out.println("Provider receive form ip:" + clientIp
+                    System.out.println("[S]-P Provider receive form ip:" + clientIp
                             + "\tport:" + clientPort + "\tdataValid:" + isValid);
                     if (!isValid) {
                         // 无效继续
@@ -91,18 +91,18 @@ public class UDPServerProvider {
                                 receivePack.getAddress(),
                                 responsePort);
                         ds.send(responsePacket);
-                        System.out.println("Provider response to:" + clientIp + "\tport:" + responsePort + "\tdataLen:" + len);
+                        System.out.println("[S]-P Provider response to:" + clientIp + "\tport:" + responsePort + "\tdataLen:" + len);
                     } else {
-                        System.out.println("Provider receive cmd nonsupport; cmd:" + cmd + "\tport:" + port);
+                        System.out.println("[S]-P Provider receive cmd nonsupport; cmd:" + cmd + "\tport:" + port);
                     }
                 }
             } catch (Exception e) {
-
+                e.printStackTrace();
             } finally {
                 close();
             }
             // 完成
-            System.out.println("Provider Finished.");
+            System.out.println("[S]-P Provider Finished.");
         }
 
         public void exit() {

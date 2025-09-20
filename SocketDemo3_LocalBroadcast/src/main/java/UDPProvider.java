@@ -10,7 +10,7 @@ import java.util.UUID;
 public class UDPProvider {
 
     public static void main(String[] args) throws SocketException, IOException {
-       // 生成唯一标识
+        // 生成唯一标识
         String sn = UUID.randomUUID().toString();
         Provider provider = new Provider(sn);
         provider.start();
