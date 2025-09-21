@@ -1,4 +1,4 @@
-package org.jesen.library.clink.frames;
+package org.jesen.library.clink.frames.base;
 
 import org.jesen.library.clink.core.Frame;
 import org.jesen.library.clink.core.IoArgs;
@@ -9,7 +9,7 @@ import java.io.IOException;
  * */
 public abstract class AbsReceiveFrame extends Frame {
     // 帧体可读写区大小
-    volatile int bodyRemaining;
+    protected volatile int bodyRemaining;
 
     public AbsReceiveFrame(byte[] header) {
         super(header);

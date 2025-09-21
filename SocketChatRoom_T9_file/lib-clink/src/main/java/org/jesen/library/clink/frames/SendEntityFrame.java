@@ -3,19 +3,23 @@ package org.jesen.library.clink.frames;
 import org.jesen.library.clink.core.Frame;
 import org.jesen.library.clink.core.IoArgs;
 import org.jesen.library.clink.core.SendPacket;
+import org.jesen.library.clink.frames.base.AbsSendPacketFrame;
 
 import java.io.IOException;
 import java.nio.channels.ReadableByteChannel;
+
 /**
  * 发送数据帧
- * */
+ */
 public class SendEntityFrame extends AbsSendPacketFrame {
+    // 未消费的长度
     private final long unConsumeEntityLength;
     // 需要将通道channel中的数据组装成Frame
     private final ReadableByteChannel channel;
 
     public SendEntityFrame(short identifier, long entityLength, ReadableByteChannel channel, SendPacket packet) {
-        super((int) Math.min(entityLength, Frame.MAX_CAPACITY),
+        super(
+                (int) Math.min(entityLength, Frame.MAX_CAPACITY),
                 Frame.TYPE_PACKET_ENTITY,
                 Frame.FLAG_NONE,
                 identifier,
@@ -27,7 +31,7 @@ public class SendEntityFrame extends AbsSendPacketFrame {
 
     @Override
     protected int consumeBody(IoArgs args) throws IOException {
-        if (packet == null){
+        if (packet == null) {
             // 已终止当前帧，填充假数据
             return args.fillEmpty(bodyRemaining);
         }

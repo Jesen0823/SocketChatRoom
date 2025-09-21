@@ -1,4 +1,4 @@
-package org.jesen.library.clink.frames;
+package org.jesen.library.clink.frames.base;
 
 import org.jesen.library.clink.core.Frame;
 import org.jesen.library.clink.core.IoArgs;
@@ -55,7 +55,7 @@ public abstract class AbsSendPacketFrame extends AbsSendFrame {
      * 扩展方法，填充假数据
      * */
     protected void fillDirtyDataOnAbort() {
-
+        // 暂无实现，扩展方法
     }
 
 

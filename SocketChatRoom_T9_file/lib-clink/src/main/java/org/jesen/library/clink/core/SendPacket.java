@@ -7,10 +7,17 @@ import java.io.InputStream;
  * */
 public abstract class SendPacket<T extends InputStream> extends Packet<T>{
 
+    /**
+     * 取消发送标记
+     */
     private boolean isCanceled;
 
     public boolean isCanceled() {
         return isCanceled;
+    }
+
+    public void cancel(){
+        isCanceled = true;
     }
 
 

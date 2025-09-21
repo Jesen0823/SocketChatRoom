@@ -4,19 +4,20 @@ import org.jesen.library.clink.core.Frame;
 import org.jesen.library.clink.core.IoArgs;
 import org.jesen.library.clink.core.SendPacket;
 import org.jesen.library.clink.core.ds.BytePriorityNode;
-import org.jesen.library.clink.frames.AbsSendPacketFrame;
+import org.jesen.library.clink.frames.base.AbsSendPacketFrame;
 import org.jesen.library.clink.frames.CancelSendFrame;
 import org.jesen.library.clink.frames.SendEntityFrame;
 import org.jesen.library.clink.frames.SendHeaderFrame;
 
 import java.io.Closeable;
 import java.io.IOException;
+
 /*
-* 管理分片逻辑的实现
-* 负责从Dispatcher拿数据
-* */
+ * 管理分片逻辑的实现
+ * 负责从Dispatcher拿数据
+ * */
 public class AsyncPacketReader implements Closeable {
-    private volatile IoArgs args = new IoArgs();
+    private volatile IoArgs ioArgs = new IoArgs();
     private final PacketProvider packetProvider;
     private volatile BytePriorityNode<Frame> node;
     private volatile int nodeSize = 0;
@@ -28,7 +29,7 @@ public class AsyncPacketReader implements Closeable {
         this.packetProvider = provider;
     }
 
-    public synchronized void cancel(SendPacket packet) {
+    synchronized void cancel(SendPacket packet) {
         if (nodeSize == 0) {
             return;
         }
@@ -52,7 +53,7 @@ public class AsyncPacketReader implements Closeable {
                     CancelSendFrame cancelFrame = new CancelSendFrame(packetFrame.getBodyIdentifier());
                     appendNewFrame(cancelFrame);
 
-                    // 以外终止，返回失败
+                    // 意外终止，返回失败
                     packetProvider.completedPacket(packet, false);
                     break;
                 }
@@ -66,8 +67,9 @@ public class AsyncPacketReader implements Closeable {
      *
      * @return 如果当前Reader中有可发送数据，则返回true
      */
-    public boolean requestTackPacket() {
+    boolean requestTackPacket() {
         synchronized (this) {
+            // 有数据，不需要再拿
             if (nodeSize >= 1) {
                 return true;
             }
@@ -89,14 +91,14 @@ public class AsyncPacketReader implements Closeable {
      *
      * @return 如果当前有可用于发送的帧，则填充数据并返回，如果填充失败则返回null
      */
-    public IoArgs fillData() {
+    IoArgs fillData() {
         Frame currentFrame = getCurrentFrame();
         if (currentFrame == null) {
             return null;
         }
         try {
             // 消费完本帧，尝试基于本帧构建后续帧
-            if (currentFrame.handle(args)) {
+            if (currentFrame.handle(ioArgs)) {
                 Frame nextFrame = currentFrame.nextFrame();
                 if (nextFrame != null) {
                     appendNewFrame(nextFrame);
@@ -107,7 +109,7 @@ public class AsyncPacketReader implements Closeable {
                 // 从链表移除
                 popCurrentFrame();
             }
-            return args;
+            return ioArgs;
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -153,7 +155,6 @@ public class AsyncPacketReader implements Closeable {
         nodeSize = 0;
         node = null;
     }
-
 
     /**
      * 从node移除当前帧

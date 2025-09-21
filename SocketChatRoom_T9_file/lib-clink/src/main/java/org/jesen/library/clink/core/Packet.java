@@ -69,4 +69,11 @@ public abstract class Packet<S extends Closeable> implements Closeable {
         }
     }
 
+    /**
+     * 头部额外信息，携带额外校验信息
+     */
+    public byte[] headerInfo(){
+        return null;
+    }
+
 }

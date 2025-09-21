@@ -17,14 +17,13 @@ public class IoArgs {
     /**
      * 从bytes中读取数据
      */
-    public int readFrom(byte[] bytes, int offset) {
-        int size = Math.min(bytes.length - offset, buffer.remaining());
+    public int readFrom(byte[] bytes, int offset, int count) {
+        int size = Math.min(count, buffer.remaining());
         buffer.put(bytes, offset, size);
         return size;
     }
 
     public int readFrom(ReadableByteChannel channel) throws IOException {
-        startWriting();
         int bytesProduced = 0;
         while (buffer.hasRemaining()) {
             int len = channel.read(buffer);
@@ -34,7 +33,6 @@ public class IoArgs {
             bytesProduced += len;
         }
 
-        finishWriting();
         return bytesProduced;
     }
 
@@ -98,7 +96,7 @@ public class IoArgs {
      * 设置单词写操作的容纳区间
      */
     public void limit(int l) {
-        this.limit = l;
+        this.limit = Math.min(l, buffer.capacity());
     }
 
     /**
@@ -130,6 +128,19 @@ public class IoArgs {
 
     public int capacity() {
         return buffer.capacity();
+    }
+
+    public boolean remained() {
+        return buffer.remaining() > 0;
+    }
+
+    /**
+     * 填充空数据，实际是移动buffer的position
+     */
+    public int fillEmpty(int size) {
+        int fillSize = Math.min(size, buffer.remaining());
+        buffer.position(buffer.position() + fillSize);
+        return fillSize;
     }
 
     /**

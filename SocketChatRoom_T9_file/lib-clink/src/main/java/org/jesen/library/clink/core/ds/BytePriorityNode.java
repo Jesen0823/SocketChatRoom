@@ -12,6 +12,9 @@ public class BytePriorityNode<Item> {
         this.item = item;
     }
 
+    /**
+     * 按优先级追加节点
+     */
     public void appendWithPriority(BytePriorityNode<Item> node) {
         if (next == null) {
             next = node;
