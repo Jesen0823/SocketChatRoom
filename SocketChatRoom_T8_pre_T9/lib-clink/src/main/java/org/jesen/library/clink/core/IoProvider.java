@@ -24,25 +24,14 @@ public interface IoProvider extends Closeable {
     }
 
     abstract class HandleOutputCallback implements Runnable {
-        // 附加参数，用来存储SocketChannel可发送状态时，要发送的数据
-        private Object attach;
 
         @Override
         public final void run() {
-            canProviderOutput(attach);
+            canProviderOutput();
         }
 
-        public final void setAttach(Object attach) {
-            this.attach = attach;
-        }
+        protected abstract void canProviderOutput();
 
-        protected abstract void canProviderOutput(Object attach);
-
-        public final <T> T getAttach() {
-            @SuppressWarnings({"UnnecessaryLocalVariable", "unchecked"})
-            T attach = (T) this.attach;
-            return attach;
-        }
     }
 
 }

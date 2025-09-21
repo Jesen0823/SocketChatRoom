@@ -2,10 +2,12 @@ package org.jesen.library.clink.box;
 
 import org.jesen.library.clink.core.SendPacket;
 
-import java.io.IOException;
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 
-public class StringSendPacket extends SendPacket {
+public class StringSendPacket extends SendPacket<ByteArrayInputStream> {
     private final byte[] bytes;
+    private InputStream stream;
 
     public StringSendPacket(String msg) {
         this.bytes = msg.getBytes();
@@ -13,12 +15,7 @@ public class StringSendPacket extends SendPacket {
     }
 
     @Override
-    public byte[] bytes() {
-        return bytes;
-    }
-
-    @Override
-    public void close() throws IOException {
-
+    protected ByteArrayInputStream createStream() {
+        return new ByteArrayInputStream(bytes);
     }
 }
