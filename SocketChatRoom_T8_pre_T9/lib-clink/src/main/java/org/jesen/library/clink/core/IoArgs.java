@@ -1,9 +1,7 @@
 package org.jesen.library.clink.core;
 
-import java.io.ByteArrayOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SocketChannel;
@@ -13,8 +11,8 @@ import java.nio.channels.WritableByteChannel;
  * IO输出输入的参数,封装ByteBuffer
  */
 public class IoArgs {
-    private int limit =5;
-    private ByteBuffer buffer = ByteBuffer.allocate(5);
+    private int limit = 256;
+    private ByteBuffer buffer = ByteBuffer.allocate(256);
 
     /**
      * 从bytes中读取数据
@@ -49,7 +47,7 @@ public class IoArgs {
         return size;
     }
 
-    public int writeTo(WritableByteChannel channel) throws IOException{
+    public int writeTo(WritableByteChannel channel) throws IOException {
         int bytesProduced = 0;
         while (buffer.hasRemaining()) {
             int len = channel.write(buffer);
@@ -99,7 +97,7 @@ public class IoArgs {
     /**
      * 设置单词写操作的容纳区间
      */
-    public void limit(int l){
+    public void limit(int l) {
         this.limit = l;
     }
 
@@ -126,7 +124,7 @@ public class IoArgs {
         finishWriting();
     }
 
-    public int readLength(){
+    public int readLength() {
         return buffer.getInt();
     }
 
@@ -137,9 +135,11 @@ public class IoArgs {
     /**
      * IoArgs 提供者、处理者，数据的生产或消费
      */
-    public interface IoArgsEventProcessor{
+    public interface IoArgsEventProcessor {
         IoArgs provideIoArgs();
-        void onConsumeFailed(IoArgs args,Exception e);
+
+        void onConsumeFailed(IoArgs args, Exception e);
+
         void onConsumeCompleted(IoArgs args);
     }
 }

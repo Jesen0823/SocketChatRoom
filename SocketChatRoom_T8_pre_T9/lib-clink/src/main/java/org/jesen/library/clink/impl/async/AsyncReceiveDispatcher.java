@@ -1,10 +1,7 @@
 package org.jesen.library.clink.impl.async;
 
 import org.jesen.library.clink.box.StringReceivePacket;
-import org.jesen.library.clink.core.IoArgs;
-import org.jesen.library.clink.core.ReceiveDispatcher;
-import org.jesen.library.clink.core.ReceivePacket;
-import org.jesen.library.clink.core.Receiver;
+import org.jesen.library.clink.core.*;
 import org.jesen.library.clink.utils.CloseUtils;
 
 import java.io.IOException;
@@ -19,15 +16,15 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
     private final ReceivePacketCallback receiveCallback;
 
     private IoArgs ioArgs = new IoArgs();
-    private ReceivePacket<?> packetTemp;
+    private ReceivePacket<?, ?> packetTemp;
     private WritableByteChannel packetChannel;
     private long total;
     private long position;
 
     public AsyncReceiveDispatcher(Receiver receiver, ReceivePacketCallback receiveCallback) {
         this.receiver = receiver;
-        this.receiver.setReceiveListener(this);
         this.receiveCallback = receiveCallback;
+        this.receiver.setReceiveListener(this);
     }
 
     /**
@@ -36,7 +33,9 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
     private void assemblePacket(IoArgs args) {
         if (packetTemp == null) {
             int length = args.readLength();
-            packetTemp = new StringReceivePacket(length);
+            byte type = length >200? Packet.TYPE_STREAM_FILE:Packet.TYPE_MEMORY_STRING;
+
+            packetTemp =receiveCallback.onArrivedNewPacket(type,length);
             packetChannel = Channels.newChannel(packetTemp.open());
             total = length;
             position = 0;
@@ -44,10 +43,10 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
         // 数据写入buffer
         try {
             int count = args.writeTo(packetChannel);
-                position += count;
-                if (position == total) {
-                    completePacket(true);
-                }
+            position += count;
+            if (position == total) {
+                completePacket(true);
+            }
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -66,7 +65,7 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
         WritableByteChannel channel = this.packetChannel;
         CloseUtils.close(channel);
         packetChannel = null;
-        if (packet!=null) {
+        if (packet != null) {
             receiveCallback.onReceivePacketCompleted(packet);
         }
     }
@@ -79,12 +78,12 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
 
     @Override
     public void stop() {
-
+        System.out.println("--AsyncReceiveDispatcher,stop.");
     }
 
     @Override
     public void close() throws IOException {
-        if (isClosed.compareAndSet(false,true)){
+        if (isClosed.compareAndSet(false, true)) {
             completePacket(false);
         }
     }

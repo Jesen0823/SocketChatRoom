@@ -1,7 +1,8 @@
 package org.jesen.im.sample.client;
 
-
 import org.jesen.im.sample.client.bean.ServerInfo;
+import org.jesen.im.sample.foo.Foo;
+import org.jesen.library.clink.box.FileSendPacket;
 import org.jesen.library.clink.core.IoContext;
 import org.jesen.library.clink.impl.IoSelectorProvider;
 
@@ -9,6 +10,7 @@ import java.io.*;
 
 public class Client {
     public static void main(String[] args) throws IOException {
+        File cachePath = Foo.getCacheDir("client");
         IoContext.setup()
                 .ioProvider(new IoSelectorProvider())
                 .start();
@@ -19,7 +21,7 @@ public class Client {
         if (info != null) {
             TCPClient tcpClient = null;
             try {
-                tcpClient = TCPClient.startWith(info);
+                tcpClient = TCPClient.startWith(info, cachePath);
                 if (tcpClient == null) {
                     return;
                 }
@@ -44,12 +46,24 @@ public class Client {
         do {
             // 键盘读取一行
             String str = input.readLine();
-            // 发送到服务器
-            tcpClient.send(str);
-
             if ("00bye00".equalsIgnoreCase(str)) {
                 break;
             }
+            // 发送文件
+            if (str.startsWith("--f")) {
+                String[] array = str.split(" ");
+                if (array.length >= 2) {
+                    String filePath = array[1];
+                    File file = new File(filePath);
+                    if (file.exists() && file.isFile()) {
+                        FileSendPacket sendPacket = new FileSendPacket(file);
+                        tcpClient.send(sendPacket);
+                        continue;
+                    }
+                }
+            }
+            // 发送到服务器
+            tcpClient.send(str);
         } while (true);
     }
 }

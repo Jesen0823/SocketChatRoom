@@ -1,21 +1,16 @@
 package org.jesen.library.clink.box;
 
-import org.jesen.library.clink.core.SendPacket;
+public class StringSendPacket extends BytesSendPacket {
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-
-public class StringSendPacket extends SendPacket<ByteArrayInputStream> {
-    private final byte[] bytes;
-    private InputStream stream;
-
+    /**
+     * 字符串发送时就是Byte数组，所以直接得到Byte数组，并按照Byte的方式发送
+     */
     public StringSendPacket(String msg) {
-        this.bytes = msg.getBytes();
-        this.length = bytes.length;
+        super(msg.getBytes());
     }
 
     @Override
-    protected ByteArrayInputStream createStream() {
-        return new ByteArrayInputStream(bytes);
+    public byte type() {
+        return TYPE_MEMORY_STRING;
     }
 }

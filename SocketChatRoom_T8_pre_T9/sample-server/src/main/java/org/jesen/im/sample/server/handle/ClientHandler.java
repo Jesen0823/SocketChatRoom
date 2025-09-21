@@ -1,19 +1,25 @@
 package org.jesen.im.sample.server.handle;
 
 
+import org.jesen.im.sample.foo.Foo;
 import org.jesen.library.clink.core.Connector;
+import org.jesen.library.clink.core.Packet;
+import org.jesen.library.clink.core.ReceivePacket;
 import org.jesen.library.clink.utils.CloseUtils;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
-public class ClientHandler extends Connector{
+public class ClientHandler extends Connector {
     private final ClientHandlerCallback clientHandlerCallback;
     private final String clientInfo;
+    private final File cachePath;
 
-    public ClientHandler(SocketChannel socketChannel, ClientHandlerCallback clientHandlerCallback) throws IOException {
+    public ClientHandler(SocketChannel socketChannel, ClientHandlerCallback clientHandlerCallback, File cachePath) throws IOException {
         this.clientHandlerCallback = clientHandlerCallback;
         this.clientInfo = socketChannel.getRemoteAddress().toString();
+        this.cachePath = cachePath;
         System.out.println("新客户端连接：" + clientInfo);
 
         setup(socketChannel);
@@ -25,15 +31,25 @@ public class ClientHandler extends Connector{
     }
 
     @Override
-    public void onChannelClosed(SocketChannel channel) {
-        super.onChannelClosed(channel);
-        exitBySelf();
+    protected File createNewReceiveFile() {
+        return Foo.createRandomTemp(cachePath);
     }
 
     @Override
-    protected void onReceiveNewMessage(String str) {
-        super.onReceiveNewMessage(str);
-        clientHandlerCallback.onMessageArrived(this,str);
+    protected void onReceiveNewPacket(ReceivePacket packet) {
+        super.onReceiveNewPacket(packet);
+        if (packet.type() == Packet.TYPE_MEMORY_STRING) {
+            String msg = (String) packet.entity();
+            System.out.println("TCPServer->ClientHandler, onReceiveNewPacket() " + key.toString() + ": [Type:" +
+                    packet.type() + ", Length:" + packet.length() + "], data: " + msg);
+            clientHandlerCallback.onMessageArrived(this, msg);
+        }
+    }
+
+    @Override
+    public void onChannelClosed(SocketChannel channel) {
+        super.onChannelClosed(channel);
+        exitBySelf();
     }
 
     private void exitBySelf() {

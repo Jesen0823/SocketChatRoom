@@ -1,8 +1,10 @@
 package org.jesen.im.sample.client;
 
-
 import org.jesen.im.sample.client.bean.ServerInfo;
+import org.jesen.im.sample.foo.Foo;
 import org.jesen.library.clink.core.Connector;
+import org.jesen.library.clink.core.Packet;
+import org.jesen.library.clink.core.ReceivePacket;
 import org.jesen.library.clink.utils.CloseUtils;
 
 import java.io.*;
@@ -11,8 +13,10 @@ import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 
 public class TCPClient extends Connector {
+    private final File cachePath;
 
-    public TCPClient(SocketChannel socketChannel) throws IOException {
+    public TCPClient(SocketChannel socketChannel, File cachePath) throws IOException {
+        this.cachePath = cachePath;
         setup(socketChannel);
     }
 
@@ -21,12 +25,27 @@ public class TCPClient extends Connector {
     }
 
     @Override
+    protected File createNewReceiveFile() {
+        return Foo.createRandomTemp(cachePath);
+    }
+
+    @Override
     public void onChannelClosed(SocketChannel channel) {
         super.onChannelClosed(channel);
         System.out.println("连接已关闭，无法读取数据");
     }
 
-    public static TCPClient startWith(ServerInfo info) throws IOException {
+    @Override
+    protected void onReceiveNewPacket(ReceivePacket packet) {
+        super.onReceiveNewPacket(packet);
+        if (packet.type() == Packet.TYPE_MEMORY_STRING) {
+            String msg = (String) packet.entity();
+            System.out.println("TCPClient, onReceiveNewPacket() " + key.toString() + ": [Type:" + packet.type() +
+                    ", Length:" + packet.length() + "], data: " + msg);
+        }
+    }
+
+    public static TCPClient startWith(ServerInfo info, File cacheFile) throws IOException {
         SocketChannel socketChannel = SocketChannel.open();
 
         // 连接本地，端口2000；超时时间3000ms
@@ -37,7 +56,7 @@ public class TCPClient extends Connector {
         System.out.println("服务器信息：" + socketChannel.getRemoteAddress().toString());
 
         try {
-            return new TCPClient(socketChannel);
+            return new TCPClient(socketChannel, cacheFile);
         } catch (Exception e) {
             System.out.println("连接异常");
             CloseUtils.close(socketChannel);

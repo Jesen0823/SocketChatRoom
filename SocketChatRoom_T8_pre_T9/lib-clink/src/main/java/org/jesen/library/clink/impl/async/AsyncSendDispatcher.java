@@ -72,7 +72,7 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventPr
             sendNextPacket();
             return;
         }
-        // 真正发送数据
+        // 真正发送数据,没有完成
         try {
             sender.postSendAsync();
         } catch (IOException e) {
@@ -94,6 +94,7 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventPr
             total = 0;
             position = 0;
         }
+        System.out.println("--completePacket, isSucceed: " + isSucceed);
     }
 
     private void closeAndNotify() {
@@ -102,7 +103,7 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventPr
 
     @Override
     public void cancel(SendPacket packet) {
-
+        System.out.println("--cancel");
     }
 
     @Override
