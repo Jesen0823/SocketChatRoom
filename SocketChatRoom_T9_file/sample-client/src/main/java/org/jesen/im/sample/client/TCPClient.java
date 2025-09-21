@@ -1,6 +1,5 @@
 package org.jesen.im.sample.client;
 
-
 import org.jesen.im.sample.client.bean.ServerInfo;
 import org.jesen.im.sample.foo.Foo;
 import org.jesen.library.clink.core.Connector;
@@ -16,9 +15,9 @@ import java.nio.channels.SocketChannel;
 public class TCPClient extends Connector {
     private final File cachePath;
 
-    public TCPClient(SocketChannel socketChannel,File cachePath) throws IOException {
-        setup(socketChannel);
+    public TCPClient(SocketChannel socketChannel, File cachePath) throws IOException {
         this.cachePath = cachePath;
+        setup(socketChannel);
     }
 
     public void exit() {
@@ -39,9 +38,10 @@ public class TCPClient extends Connector {
     @Override
     protected void onReceiveNewPacket(ReceivePacket packet) {
         super.onReceiveNewPacket(packet);
-        if (packet.type() == Packet.TYPE_MEMORY_STRING){
-            String string = (String) packet.entity();
-            System.out.println("onReceiveNewPacket: "+key+" : "+string);
+        if (packet.type() == Packet.TYPE_MEMORY_STRING) {
+            String msg = (String) packet.entity();
+            System.out.println("TCPClient, onReceiveNewPacket() " + key.toString() + ": [Type:" + packet.type() +
+                    ", Length:" + packet.length() + "], data: " + msg);
         }
     }
 
@@ -56,7 +56,7 @@ public class TCPClient extends Connector {
         System.out.println("服务器信息：" + socketChannel.getRemoteAddress().toString());
 
         try {
-            return new TCPClient(socketChannel,cacheFile);
+            return new TCPClient(socketChannel, cacheFile);
         } catch (Exception e) {
             System.out.println("连接异常");
             CloseUtils.close(socketChannel);

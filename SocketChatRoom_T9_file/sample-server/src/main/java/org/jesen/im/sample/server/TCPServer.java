@@ -37,6 +37,7 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
             serverChannel = ServerSocketChannel.open();
             serverChannel.configureBlocking(false); // 设置为非阻塞
             serverChannel.socket().bind(new InetSocketAddress(port)); // 绑定本地端口
+            //serverChannel.bind(new InetSocketAddress(port));
 
             // 注册客户端连接到达事件
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
@@ -137,7 +138,7 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
                             SocketChannel socketChannel = serverSocketChannel.accept();
                             try {
                                 // 客户端构建异步线程
-                                ClientHandler clientHandler = new ClientHandler(socketChannel, TCPServer.this, cachePath);
+                                ClientHandler clientHandler = new ClientHandler(socketChannel, TCPServer.this,cachePath);
 
                                 synchronized (TCPServer.this) {
                                     clientHandlerList.add(clientHandler);

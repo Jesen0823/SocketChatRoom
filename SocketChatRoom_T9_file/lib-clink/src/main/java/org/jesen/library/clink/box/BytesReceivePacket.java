@@ -2,12 +2,9 @@ package org.jesen.library.clink.box;
 
 import java.io.ByteArrayOutputStream;
 
-/**
- * 纯Byte数组接收包
- */
-public class BytesReceivePacket extends AbsByteArrayReceivePacket<byte[]>{
+public class BytesReceivePacket extends AbsByteArrayReceivePacket<byte[]> {
 
-    public BytesReceivePacket(long len){
+    public BytesReceivePacket(long len) {
         super(len);
     }
 

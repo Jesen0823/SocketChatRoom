@@ -25,7 +25,8 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
     private SendDispatcher sendDispatcher;
     private ReceiveDispatcher receiveDispatcher;
 
-    private final ReceiveDispatcher.ReceivePacketCallback receivePacketCallback = new ReceiveDispatcher.ReceivePacketCallback() {
+    // 数据接收到的回调
+    private ReceiveDispatcher.ReceivePacketCallback receivePacketCallback = new ReceiveDispatcher.ReceivePacketCallback() {
         @Override
         public ReceivePacket<?, ?> onArrivedNewPacket(byte type, long length) {
             switch (type) {
@@ -90,11 +91,12 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
     }
 
     protected void onReceiveNewMessage(String str) {
-        System.out.println(key.toString() + ":" + str);
+        System.out.println("Connector onReceiveNewMessage(): " + key.toString() + ":" + str);
     }
 
     protected void onReceiveNewPacket(ReceivePacket packet) {
-        System.out.println(key.toString() + ": [Type:" + packet.type() + ", Length:" + packet.length() + "]");
+        //System.out.println("--onReceiveNewPacket");
+        System.out.println("onReceiveNewPacket() " + key.toString() + ": [Type:" + packet.type() + ", Length:" + packet.length() + "]");
     }
 }
 

@@ -4,8 +4,8 @@ import java.io.InputStream;
 
 /**
  * 发送包
- */
-public abstract class SendPacket<T extends InputStream> extends Packet<T> {
+ * */
+public abstract class SendPacket<T extends InputStream> extends Packet<T>{
 
     private boolean isCanceled;
 
@@ -13,10 +13,5 @@ public abstract class SendPacket<T extends InputStream> extends Packet<T> {
         return isCanceled;
     }
 
-    /**
-     * 取消发送
-     */
-    public void cancel(){
-        isCanceled = true;
-    }
+
 }

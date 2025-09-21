@@ -6,8 +6,7 @@ import java.io.OutputStream;
 /**
  * 接受包
  */
-public abstract class ReceivePacket<T extends OutputStream, E> extends Packet<T> {
-    // 当前接收包最终的实体
+public abstract class ReceivePacket<S extends OutputStream, E> extends Packet<S> {
     private E entity;
 
     public ReceivePacket(long len) {
@@ -29,7 +28,7 @@ public abstract class ReceivePacket<T extends OutputStream, E> extends Packet<T>
      * @param stream {@link OutputStream}
      * @return 实体
      */
-    protected abstract E buildEntity(T stream);
+    protected abstract E buildEntity(S stream);
 
     /**
      * 先关闭流，接着将流转化为对应实体
@@ -37,7 +36,7 @@ public abstract class ReceivePacket<T extends OutputStream, E> extends Packet<T>
      * @param stream 待关闭的流
      */
     @Override
-    protected final void closeStream(T stream) throws IOException {
+    protected void closeStream(S stream) throws IOException {
         super.closeStream(stream);
         entity = buildEntity(stream);
     }

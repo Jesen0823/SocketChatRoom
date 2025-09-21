@@ -4,7 +4,7 @@ import java.io.Closeable;
 
 /**
  * 接收数据的调度者
- * 把一份或多份IoArgs组合成一份Packet
+ * 把一份或多份IoArgs组合成一份Packet,与SendDispatcher相反
  */
 public interface ReceiveDispatcher extends Closeable {
 

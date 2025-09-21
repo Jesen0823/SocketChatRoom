@@ -11,7 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
-public class ClientHandler extends Connector{
+public class ClientHandler extends Connector {
     private final ClientHandlerCallback clientHandlerCallback;
     private final String clientInfo;
     private final File cachePath;
@@ -36,19 +36,20 @@ public class ClientHandler extends Connector{
     }
 
     @Override
-    public void onChannelClosed(SocketChannel channel) {
-        super.onChannelClosed(channel);
-        exitBySelf();
+    protected void onReceiveNewPacket(ReceivePacket packet) {
+        super.onReceiveNewPacket(packet);
+        if (packet.type() == Packet.TYPE_MEMORY_STRING) {
+            String msg = (String) packet.entity();
+            System.out.println("TCPServer->ClientHandler, onReceiveNewPacket() " + key.toString() + ": [Type:" +
+                    packet.type() + ", Length:" + packet.length() + "], data: " + msg);
+            clientHandlerCallback.onMessageArrived(this, msg);
+        }
     }
 
     @Override
-    protected void onReceiveNewPacket(ReceivePacket packet) {
-        super.onReceiveNewPacket(packet);
-        if (packet.type() == Packet.TYPE_MEMORY_STRING){
-            String string = (String) packet.entity();
-            System.out.println("onReceiveNewPacket: "+key+" : "+string);
-            clientHandlerCallback.onMessageArrived(this,string);
-        }
+    public void onChannelClosed(SocketChannel channel) {
+        super.onChannelClosed(channel);
+        exitBySelf();
     }
 
     private void exitBySelf() {

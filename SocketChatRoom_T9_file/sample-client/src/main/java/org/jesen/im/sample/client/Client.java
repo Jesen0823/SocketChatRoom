@@ -1,6 +1,5 @@
 package org.jesen.im.sample.client;
 
-
 import org.jesen.im.sample.client.bean.ServerInfo;
 import org.jesen.im.sample.foo.Foo;
 import org.jesen.library.clink.box.FileSendPacket;
@@ -47,19 +46,18 @@ public class Client {
         do {
             // 键盘读取一行
             String str = input.readLine();
-
             if ("00bye00".equalsIgnoreCase(str)) {
                 break;
             }
-            // 文件发送
+            // 发送文件
             if (str.startsWith("--f")) {
                 String[] array = str.split(" ");
                 if (array.length >= 2) {
                     String filePath = array[1];
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
-                        FileSendPacket packet = new FileSendPacket(file);
-                        tcpClient.send(packet);
+                        FileSendPacket sendPacket = new FileSendPacket(file);
+                        tcpClient.send(sendPacket);
                         continue;
                     }
                 }

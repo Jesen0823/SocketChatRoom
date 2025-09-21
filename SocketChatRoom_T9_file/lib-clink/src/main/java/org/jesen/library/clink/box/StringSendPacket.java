@@ -1,12 +1,5 @@
 package org.jesen.library.clink.box;
 
-import org.jesen.library.clink.core.Packet;
-
-import java.io.ByteArrayInputStream;
-
-/**
- * 字符串发送包
- */
 public class StringSendPacket extends BytesSendPacket {
 
     /**
@@ -18,11 +11,6 @@ public class StringSendPacket extends BytesSendPacket {
 
     @Override
     public byte type() {
-        return Packet.TYPE_MEMORY_STRING;
-    }
-
-    @Override
-    protected ByteArrayInputStream createStream() {
-        return new ByteArrayInputStream(bytes);
+        return TYPE_MEMORY_STRING;
     }
 }

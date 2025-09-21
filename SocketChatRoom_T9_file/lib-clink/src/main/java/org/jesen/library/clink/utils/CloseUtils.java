@@ -9,7 +9,7 @@ public class CloseUtils {
             return;
         }
         for (Closeable closeable : closeables) {
-            if (closeable == null){
+            if (closeable==null){
                 continue;
             }
             try {

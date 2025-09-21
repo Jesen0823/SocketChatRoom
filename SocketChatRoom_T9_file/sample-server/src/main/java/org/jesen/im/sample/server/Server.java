@@ -11,9 +11,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class Server {
-    private static File cachePath = Foo.getCacheDir("server");
-
     public static void main(String[] args) throws IOException {
+        File cachePath = Foo.getCacheDir("server");
+
         IoContext.setup()
                 .ioProvider(new IoSelectorProvider())
                 .start();
@@ -34,7 +34,6 @@ public class Server {
             if ("00bye00".equalsIgnoreCase(str)){
                 break;
             }
-            // 发送字符串
             tcpServer.broadcast(str);
         } while (true);
 
