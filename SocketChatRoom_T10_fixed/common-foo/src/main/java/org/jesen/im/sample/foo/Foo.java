@@ -7,6 +7,8 @@ import java.util.UUID;
 public class Foo {
     private static final String CACHE_DIR = "cache";
 
+    public static final String COMMAND_EXIT = "00bye00";
+
     public static File getCacheDir(String dir) {
 
         String path = System.getProperty("user.dir") + (File.separator + CACHE_DIR + File.separator + dir);

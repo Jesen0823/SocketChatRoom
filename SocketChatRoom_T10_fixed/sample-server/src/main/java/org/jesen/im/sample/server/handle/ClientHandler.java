@@ -30,6 +30,10 @@ public class ClientHandler extends Connector {
         System.out.println("客户端已退出：" + clientInfo);
     }
 
+    public String getClientInfo() {
+        return clientInfo;
+    }
+
     @Override
     protected File createNewReceiveFile() {
         return Foo.createRandomTemp(cachePath);

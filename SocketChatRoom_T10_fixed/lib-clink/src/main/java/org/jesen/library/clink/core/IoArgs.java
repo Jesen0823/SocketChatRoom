@@ -62,17 +62,16 @@ public class IoArgs {
      * 从SocketChannel读取数据
      */
     public int readFrom(SocketChannel channel) throws IOException {
-        startWriting();
+        ByteBuffer buffer = this.buffer;
         int bytesProduced = 0;
-        while (buffer.hasRemaining()) {
-            int len = channel.read(buffer);
+        int len;
+        do {
+            len = channel.read(buffer);
             if (len < 0) {
-                throw new EOFException();
+                throw new EOFException("Cannot read any data with: " + channel);
             }
             bytesProduced += len;
-        }
-
-        finishWriting();
+        } while (buffer.hasRemaining() && len != 0);
         return bytesProduced;
     }
 
@@ -80,14 +79,16 @@ public class IoArgs {
      * 向SocketChannel写入数据
      */
     public int writeTo(SocketChannel channel) throws IOException {
+        ByteBuffer buffer = this.buffer;
         int bytesProduced = 0;
-        while (buffer.hasRemaining()) {
-            int len = channel.write(buffer);
+        int len;
+        do {
+            len = channel.write(buffer);
             if (len < 0) {
-                throw new EOFException();
+                throw new EOFException("Current write any data with channel: " + channel);
             }
             bytesProduced += len;
-        }
+        } while (buffer.hasRemaining() && len != 0);
 
         return bytesProduced;
     }
@@ -147,6 +148,9 @@ public class IoArgs {
      * IoArgs 提供者、处理者，数据的生产或消费
      */
     public interface IoArgsEventProcessor {
+        /**
+         * 提供可消费的IoArgs
+         */
         IoArgs provideIoArgs();
 
         void onConsumeFailed(IoArgs args, Exception e);

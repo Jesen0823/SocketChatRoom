@@ -59,7 +59,9 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
 
     @Override
     public IoArgs provideIoArgs() {
-        return writer.takeIoArgs();
+        IoArgs ioArgs = writer.takeIoArgs();
+        ioArgs.startWriting();
+        return ioArgs;
     }
 
     @Override
@@ -72,6 +74,8 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
         if (isClosed.get()) {
             return;
         }
+        // 消费IoArgs之前，标记为写入完成
+        args.finishWriting();
         do {
             writer.consumeIoArgs(args);
         } while (args.remained() && !isClosed.get());

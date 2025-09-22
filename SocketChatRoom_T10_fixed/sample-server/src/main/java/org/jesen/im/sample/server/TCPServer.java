@@ -11,19 +11,18 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class TCPServer implements ClientHandler.ClientHandlerCallback {
+public class TCPServer implements ClientHandler.ClientHandlerCallback, ServerAcceptor.AcceptListener {
     private final int port;
-    private ClientListener mListener;
     private List<ClientHandler> clientHandlerList = new ArrayList<>();
     private final ExecutorService forwardExecutor;
     private Selector selector;
     private ServerSocketChannel serverChannel;
     private final File cachePath;
+    private ServerAcceptor acceptor;
 
     private long sendSize;
     private long receiveSize;
@@ -36,31 +35,36 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
 
     public boolean start() {
         try {
-            selector = Selector.open();
-            serverChannel = ServerSocketChannel.open();
-            serverChannel.configureBlocking(false); // 设置为非阻塞
-            serverChannel.socket().bind(new InetSocketAddress(port)); // 绑定本地端口
-            //serverChannel.bind(new InetSocketAddress(port));
+            ServerAcceptor acceptor = new ServerAcceptor(this);
+            ServerSocketChannel server = ServerSocketChannel.open();
+            server.configureBlocking(false);
+            // 绑定本地端口
+            server.socket().bind(new InetSocketAddress(port));
+            // 注册客户端连接到达监听
+            server.register(acceptor.getSelector(), SelectionKey.OP_ACCEPT);
+            this.serverChannel = server;
+            this.acceptor = acceptor;
 
-            // 注册客户端连接到达事件
-            serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+            acceptor.start();
 
-            System.out.println("服务器信息：" + serverChannel.getLocalAddress().toString());
+            if (acceptor.awaitRunning()) {
+                System.out.println("服务器准备就绪～");
+                System.out.println("服务器信息：" + serverChannel.getLocalAddress().toString());
+                return true;
+            } else {
+                System.out.println("启动异常！");
+                return false;
+            }
 
-            // 启动客户端监听
-            ClientListener listener = new ClientListener();
-            mListener = listener;
-            listener.start();
         } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
-        return true;
     }
 
     public void stop() {
-        if (mListener != null) {
-            mListener.exit();
+        if (acceptor != null) {
+            acceptor.exit();
         }
         CloseUtils.close(serverChannel);
         CloseUtils.close(selector);
@@ -118,64 +122,19 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
         };
     }
 
-    private class ClientListener extends Thread {
-        private boolean done = false;
-
-        @Override
-        public void run() {
-            super.run();
-
-            Selector selector = TCPServer.this.selector;
-            System.out.println("服务器准备就绪～");
-            // 等待客户端连接
-            do {
-                // 得到客户端
-                try {
-                    if (selector.select() == 0) {
-                        if (done) {
-                            break;
-                        }
-                        continue;
-                    }
-                    Iterator<SelectionKey> iterator = selector.selectedKeys().iterator();
-                    while (iterator.hasNext()) {
-                        if (done) {
-                            break;
-                        }
-                        SelectionKey key = iterator.next(); // 当前已经就绪的事件
-                        iterator.remove();
-
-                        // 检查当前Key状态可用
-                        if (key.isAcceptable()) {
-                            ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
-                            // 非阻塞状态拿到一个就绪的客户端
-                            SocketChannel socketChannel = serverSocketChannel.accept();
-                            try {
-                                // 客户端构建异步线程
-                                ClientHandler clientHandler = new ClientHandler(socketChannel, TCPServer.this, cachePath);
-
-                                synchronized (TCPServer.this) {
-                                    clientHandlerList.add(clientHandler);
-                                }
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                System.out.println("客户端连接异常：" + e.getMessage());
-                            }
-                        }
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            } while (!done);
-
-            System.out.println("服务器已关闭！");
+    @Override
+    public void onNewSocketArrived(SocketChannel channel) {
+        try {
+            ClientHandler clientHandler = new ClientHandler(channel, this, cachePath);
+            System.out.println(clientHandler.getClientInfo() + ": Connected!");
+            synchronized (TCPServer.this) {
+                clientHandlerList.add(clientHandler);
+                System.out.println("当前客户端数量：" + clientHandlerList.size());
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("客户端连接异常：" + e.getMessage());
         }
 
-        void exit() {
-            done = true;
-            // 唤醒selector的阻塞
-            selector.wakeup();
-        }
     }
 }
