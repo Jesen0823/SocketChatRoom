@@ -40,8 +40,8 @@ public class ClientHandler extends Connector {
         super.onReceiveNewPacket(packet);
         if (packet.type() == Packet.TYPE_MEMORY_STRING) {
             String msg = (String) packet.entity();
-            System.out.println("TCPServer->ClientHandler, onReceiveNewPacket() " + key.toString() + ": [Type:" +
-                    packet.type() + ", Length:" + packet.length() + "], data: " + msg);
+            /*System.out.println("TCPServer->ClientHandler, onReceiveNewPacket() " + key.toString() + ": [Type:" +
+                    packet.type() + ", Length:" + packet.length() + "], data: " + msg);*/
             clientHandlerCallback.onMessageArrived(this, msg);
         }
     }

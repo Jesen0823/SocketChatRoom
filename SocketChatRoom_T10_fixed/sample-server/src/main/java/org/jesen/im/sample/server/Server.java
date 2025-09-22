@@ -1,6 +1,7 @@
 package org.jesen.im.sample.server;
 
 import org.jesen.im.sample.foo.Foo;
+import org.jesen.im.sample.foo.FooGui;
 import org.jesen.im.sample.foo.constants.TCPConstants;
 import org.jesen.library.clink.core.IoContext;
 import org.jesen.library.clink.impl.IoSelectorProvider;
@@ -27,6 +28,10 @@ public class Server {
 
         UDPProvider.start(TCPConstants.PORT_SERVER);
 
+        // Gui监控界面
+        FooGui gui = new FooGui("Clink-Server", tcpServer::getStatusString);
+        gui.doShow();
+
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
         String str;
         do {
@@ -41,5 +46,6 @@ public class Server {
         tcpServer.stop();
 
         IoContext.close();
+        gui.doDismiss();
     }
 }

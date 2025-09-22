@@ -39,9 +39,9 @@ public class TCPClient extends Connector {
     protected void onReceiveNewPacket(ReceivePacket packet) {
         super.onReceiveNewPacket(packet);
         if (packet.type() == Packet.TYPE_MEMORY_STRING) {
-            String msg = (String) packet.entity();
-            System.out.println("TCPClient, onReceiveNewPacket() " + key.toString() + ": [Type:" + packet.type() +
-                    ", Length:" + packet.length() + "], data: " + msg);
+            //String msg = (String) packet.entity();
+            /*System.out.println("TCPClient, onReceiveNewPacket() " + key.toString() + ": [Type:" + packet.type() +
+                    ", Length:" + packet.length() + "], data: " + msg);*/
         }
     }
 

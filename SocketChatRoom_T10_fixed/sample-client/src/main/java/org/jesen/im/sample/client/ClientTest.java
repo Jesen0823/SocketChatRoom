@@ -28,7 +28,7 @@ public class ClientTest {
         // 当前连接数量
         int size = 0;
         final List<TCPClient> tcpClients = new ArrayList<>();
-        for (int i = 0; i < 100; i++) {
+        for (int i = 0; i < 200; i++) {
             try {
                 TCPClient tcpClient = TCPClient.startWith(info, cachePath);
                 if (tcpClient == null) {
@@ -50,10 +50,10 @@ public class ClientTest {
         Runnable runnable = () -> {
             while (!done) {
                 for (TCPClient tcpClient : tcpClients) {
-                    tcpClient.send("Hello~~");
+                    tcpClient.send("HuHuHu~~");
                 }
                 try {
-                    Thread.sleep(100);
+                    Thread.sleep(1500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }

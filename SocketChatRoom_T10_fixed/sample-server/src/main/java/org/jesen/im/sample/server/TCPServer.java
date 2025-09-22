@@ -25,6 +25,9 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
     private ServerSocketChannel serverChannel;
     private final File cachePath;
 
+    private long sendSize;
+    private long receiveSize;
+
     public TCPServer(int port, File cachePath) {
         this.port = port;
         this.cachePath = cachePath;
@@ -76,6 +79,7 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
             for (ClientHandler clientHandler : clientHandlerList) {
                 clientHandler.send(str);
             }
+            sendSize += clientHandlerList.size();
         }
     }
 
@@ -86,6 +90,7 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
 
     @Override
     public void onMessageArrived(final ClientHandler handler, final String msg) {
+        receiveSize++;
         // 输出消息到屏幕
         //System.out.println("Received-" + handler.getClientInfo() + ": " + msg);
         forwardExecutor.execute(new Runnable() {
@@ -98,10 +103,19 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
                         }
                         // 发送给其他客户端
                         clientHandler.send(msg);
+                        sendSize++;
                     }
                 }
             }
         });
+    }
+
+    public Object[] getStatusString() {
+        return new String[]{
+                "Client count: " + clientHandlerList.size(),
+                "Send count: " + sendSize,
+                "Receive count: " + receiveSize
+        };
     }
 
     private class ClientListener extends Thread {
@@ -138,7 +152,7 @@ public class TCPServer implements ClientHandler.ClientHandlerCallback {
                             SocketChannel socketChannel = serverSocketChannel.accept();
                             try {
                                 // 客户端构建异步线程
-                                ClientHandler clientHandler = new ClientHandler(socketChannel, TCPServer.this,cachePath);
+                                ClientHandler clientHandler = new ClientHandler(socketChannel, TCPServer.this, cachePath);
 
                                 synchronized (TCPServer.this) {
                                     clientHandlerList.add(clientHandler);

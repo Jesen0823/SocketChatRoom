@@ -91,12 +91,12 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
     }
 
     protected void onReceiveNewMessage(String str) {
-        System.out.println("Connector onReceiveNewMessage(): " + key.toString() + ":" + str);
+        //System.out.println("Connector onReceiveNewMessage(): " + key.toString() + ":" + str);
     }
 
     protected void onReceiveNewPacket(ReceivePacket packet) {
         //System.out.println("--onReceiveNewPacket");
-        System.out.println("onReceiveNewPacket() " + key.toString() + ": [Type:" + packet.type() + ", Length:" + packet.length() + "]");
+        //System.out.println("onReceiveNewPacket() " + key.toString() + ": [Type:" + packet.type() + ", Length:" + packet.length() + "]");
     }
 }
 

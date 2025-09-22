@@ -72,7 +72,6 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventPr
                 }
             }
         }
-
     }
 
     private void closeAndNotify() {
