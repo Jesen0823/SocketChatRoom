@@ -2,6 +2,8 @@ package org.jesen.im.sample.client;
 
 import org.jesen.im.sample.client.bean.ServerInfo;
 import org.jesen.im.sample.foo.Foo;
+import org.jesen.library.clink.core.IoContext;
+import org.jesen.library.clink.impl.IoSelectorProvider;
 
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +15,10 @@ public class ClientTest {
 
     public static void main(String[] args) throws IOException {
         File cachePath = Foo.getCacheDir("client/test");
+        IoContext.setup()
+                .ioProvider(new IoSelectorProvider())
+                .start();
+
         ServerInfo info = UDPSearcher.searchServer(10000);
         System.out.println("Server:" + info);
         if (info == null) {
@@ -22,29 +28,22 @@ public class ClientTest {
         // 当前连接数量
         int size = 0;
         final List<TCPClient> tcpClients = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < 100; i++) {
             try {
                 TCPClient tcpClient = TCPClient.startWith(info, cachePath);
                 if (tcpClient == null) {
-                    System.out.println("连接异常");
-                    continue;
+                    throw new NullPointerException();
                 }
 
                 tcpClients.add(tcpClient);
 
                 System.out.println("连接成功：" + (++size));
 
-            } catch (IOException e) {
+            } catch (IOException | NullPointerException e) {
                 System.out.println("连接异常");
-            }
-
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+                break;
             }
         }
-
 
         System.in.read();
 
@@ -54,7 +53,7 @@ public class ClientTest {
                     tcpClient.send("Hello~~");
                 }
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(100);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -79,5 +78,7 @@ public class ClientTest {
             tcpClient.exit();
         }
 
+        IoContext.close();
     }
 }
+
