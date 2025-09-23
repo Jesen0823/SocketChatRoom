@@ -8,4 +8,7 @@ public interface Sender extends Closeable {
 
     // 异步发送
     boolean postSendAsync() throws IOException;
+
+    // 获取最后发送消息时间
+    long getLastWriteTime();
 }

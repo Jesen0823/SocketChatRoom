@@ -10,6 +10,7 @@ public abstract class Frame {
     public static final byte TYPE_PACKET_HEADER = 11;
     public static final byte TYPE_PACKET_ENTITY = 12;
 
+    public static final byte TYPE_COMMAND_HEARTBEAT = 80;
     public static final byte TYPE_COMMAND_SEND_CANCEL = 41;
     public static final byte TYPE_COMMAND_RECEIVE_REJECT = 42;
 

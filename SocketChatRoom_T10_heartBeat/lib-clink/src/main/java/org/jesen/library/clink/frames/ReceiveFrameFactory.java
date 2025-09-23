@@ -25,6 +25,8 @@ public class ReceiveFrameFactory {
                 return new ReceiveEntityFrame(buffer);
             case Frame.TYPE_COMMAND_SEND_CANCEL:
                 return new CancelReceiveFrame(buffer);
+            case Frame.TYPE_COMMAND_HEARTBEAT:
+                return HeartBeatReceiveFrame.INSTANCE;
             default:
                 throw new UnsupportedOperationException("Unsupported frame type:" + type);
         }

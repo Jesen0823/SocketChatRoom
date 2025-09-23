@@ -93,4 +93,9 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
         CloseUtils.close(packet);
         receiveCallback.onReceivePacketCompleted(packet);
     }
+
+    @Override
+    public void onReceiveHeartbeat() {
+        receiveCallback.onReceiveHeartbeat();
+    }
 }

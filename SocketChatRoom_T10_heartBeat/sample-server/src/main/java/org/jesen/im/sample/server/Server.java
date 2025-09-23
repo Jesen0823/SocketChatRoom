@@ -5,6 +5,7 @@ import org.jesen.im.sample.foo.FooGui;
 import org.jesen.im.sample.foo.constants.TCPConstants;
 import org.jesen.library.clink.core.IoContext;
 import org.jesen.library.clink.impl.IoSelectorProvider;
+import org.jesen.library.clink.impl.SchedulerImpl;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -17,6 +18,7 @@ public class Server {
 
         IoContext.setup()
                 .ioProvider(new IoSelectorProvider())
+                .scheduler(new SchedulerImpl(1))
                 .start();
 
         TCPServer tcpServer = new TCPServer(TCPConstants.PORT_SERVER, cachePath);
@@ -39,7 +41,7 @@ public class Server {
             if (str == null || Foo.COMMAND_EXIT.equalsIgnoreCase(str)) {
                 break;
             }
-            if (str.length() == 0){
+            if (str.length() == 0) {
                 continue;
             }
             tcpServer.broadcast(str);

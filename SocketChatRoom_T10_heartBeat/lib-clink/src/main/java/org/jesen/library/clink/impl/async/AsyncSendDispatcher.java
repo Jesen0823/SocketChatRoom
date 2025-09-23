@@ -29,6 +29,18 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventPr
         requestSend();
     }
 
+    @Override
+    public void sendHeartbeat() {
+        // 有数据在排队发送，则没必要发心跳
+        if (queue.size() >0){
+            return;
+        }
+        if (reader.requestSendHeartbeatFrame()){
+            requestSend();
+            System.out.println("---AsyncSendDispatcher, send a heart!");
+        }
+    }
+
     /**
      * reader从当前队列中提取一份Packet
      *

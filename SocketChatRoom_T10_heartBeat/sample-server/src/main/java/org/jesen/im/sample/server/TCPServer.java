@@ -6,6 +6,8 @@ import org.jesen.im.sample.server.handle.chain.ConnectorCloseChain;
 import org.jesen.im.sample.server.handle.chain.ConnectorStringPacketChain;
 import org.jesen.library.clink.box.StringReceivePacket;
 import org.jesen.library.clink.core.Connector;
+import org.jesen.library.clink.core.ScheduleJob;
+import org.jesen.library.clink.core.schedule.IdleTimeoutScheduleJob;
 import org.jesen.library.clink.utils.CloseUtils;
 
 import java.io.File;
@@ -20,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMessageAdapter {
     private final int port;
@@ -74,11 +77,13 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
             acceptor.exit();
         }
 
+        ClientHandler[] clientHandlers;
         synchronized (clientHandlerList) {
-            for (ClientHandler clientHandler : clientHandlerList) {
-                clientHandler.exit();
-            }
+            clientHandlers = clientHandlerList.toArray(new ClientHandler[0]);
             clientHandlerList.clear();
+        }
+        for (ClientHandler clientHandler : clientHandlers) {
+            clientHandler.exit();
         }
         CloseUtils.close(serverChannel);
         deliveryPool.shutdownNow();
@@ -86,8 +91,10 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
 
     public void broadcast(String str) {
         str = "系统通知：" + str;
+        ClientHandler[] clientHandlers;
         synchronized (clientHandlerList) {
-            for (ClientHandler clientHandler : clientHandlerList) {
+            clientHandlers = clientHandlerList.toArray(new ClientHandler[0]);
+            for (ClientHandler clientHandler : clientHandlers) {
                 sendMessageToClient(clientHandler, str);
             }
         }
@@ -120,7 +127,10 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
             clientHandler.getCloseChain()
                     .appendLast(new RemoveQueueOnConnectorClosedChain());
 
-            synchronized (TCPServer.this) {
+            ScheduleJob scheduleJob = new IdleTimeoutScheduleJob(10, TimeUnit.SECONDS, clientHandler);
+            clientHandler.schedule(scheduleJob);
+
+            synchronized (clientHandlerList) {
                 clientHandlerList.add(clientHandler);
                 System.out.println("当前客户端数量：" + clientHandlerList.size());
             }

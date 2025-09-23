@@ -13,9 +13,13 @@ public abstract class AbsSendFrame extends Frame {
     volatile byte headerRemaining = Frame.FRAME_HEADER_LENGTH;
     protected volatile int bodyRemaining;
 
-    public AbsSendFrame(int length, byte type, byte flag, short identifier) {
+    protected AbsSendFrame(int length, byte type, byte flag, short identifier) {
         super(length, type, flag, identifier);
         bodyRemaining = length;
+    }
+
+    protected AbsSendFrame(byte[] header) {
+        super(header);
     }
 
     @Override

@@ -4,6 +4,7 @@ import org.jesen.library.clink.core.Frame;
 import org.jesen.library.clink.core.IoArgs;
 import org.jesen.library.clink.core.SendPacket;
 import org.jesen.library.clink.core.ds.BytePriorityNode;
+import org.jesen.library.clink.frames.HeartBeatSendFrame;
 import org.jesen.library.clink.frames.base.AbsSendPacketFrame;
 import org.jesen.library.clink.frames.CancelSendFrame;
 import org.jesen.library.clink.frames.SendEntityFrame;
@@ -84,6 +85,23 @@ public class AsyncPacketReader implements Closeable {
         synchronized (this) {
             return nodeSize != 0;
         }
+    }
+
+    /**
+     * 请求发送心跳帧
+     *
+     * @return 是否发送心跳
+     */
+    synchronized boolean requestSendHeartbeatFrame() {
+        for (BytePriorityNode<Frame> x = node; x != null; x = x.next) {
+            Frame frame = x.item;
+            // 如果已经有一个心跳帧，不用再创建
+            if (frame.getBodyType() == Frame.TYPE_COMMAND_HEARTBEAT) {
+                return false;
+            }
+        }
+        appendNewFrame(new HeartBeatSendFrame());
+        return true;
     }
 
     /**

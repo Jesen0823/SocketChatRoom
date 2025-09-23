@@ -1,3 +1,6 @@
+org/jesen/im/sample/server/ServerAcceptor.java
+ org.jesen.im.sample.server.ServerAcceptor
+ org.jesen.im.sample.server.ServerAcceptor$AcceptListener
 org/jesen/im/sample/server/handle/ClientHandler.java
  org.jesen.im.sample.server.handle.ClientHandler
 org/jesen/im/sample/server/TCPServer.java
@@ -24,8 +27,5 @@ org/jesen/im/sample/server/handle/chain/ConnectorStringPacketChain.java
  org.jesen.im.sample.server.handle.chain.ConnectorStringPacketChain
 org/jesen/im/sample/server/handle/chain/ConnectorCloseChain.java
  org.jesen.im.sample.server.handle.chain.ConnectorCloseChain
-org/jesen/im/sample/server/ServerAcceptor.java
- org.jesen.im.sample.server.ServerAcceptor
- org.jesen.im.sample.server.ServerAcceptor$AcceptListener
 org/jesen/im/sample/server/handle/ConnectorHandleChain.java
  org.jesen.im.sample.server.handle.ConnectorHandleChain
