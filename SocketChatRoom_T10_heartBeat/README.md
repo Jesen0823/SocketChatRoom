@@ -348,6 +348,14 @@ Mina、Netty等框架从根本来说也是为了解决粘包而设计的开发�
 
 
 
+#### SocketChatRoom_T10_heartBeat
+
+添加心跳包机制。
+
+
+
+
+
 ## NIO相关方法解析
 
 
