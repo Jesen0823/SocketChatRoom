@@ -1,6 +1,6 @@
-package org.jesen.im.sample.server.handle.chain;
+package org.jesen.im.sample.foo.handle.chain;
 
-import org.jesen.im.sample.server.handle.ConnectorHandleChain;
+import org.jesen.im.sample.foo.handle.ConnectorHandleChain;
 import org.jesen.library.clink.core.Connector;
 
 /**

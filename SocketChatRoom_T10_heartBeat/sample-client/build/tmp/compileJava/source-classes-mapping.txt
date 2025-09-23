@@ -7,5 +7,7 @@ org/jesen/im/sample/client/ClientTest.java
  org.jesen.im.sample.client.ClientTest
 org/jesen/im/sample/client/Client.java
  org.jesen.im.sample.client.Client
+ org.jesen.im.sample.client.Client$1
 org/jesen/im/sample/client/TCPClient.java
  org.jesen.im.sample.client.TCPClient
+ org.jesen.im.sample.client.TCPClient$PrintStringPacketChain

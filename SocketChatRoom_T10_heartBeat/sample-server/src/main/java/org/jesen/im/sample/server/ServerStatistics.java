@@ -1,7 +1,7 @@
 package org.jesen.im.sample.server;
 
-import org.jesen.im.sample.server.handle.ClientHandler;
-import org.jesen.im.sample.server.handle.chain.ConnectorStringPacketChain;
+import org.jesen.im.sample.foo.handle.ConnectorHandler;
+import org.jesen.im.sample.foo.handle.chain.ConnectorStringPacketChain;
 import org.jesen.library.clink.box.StringReceivePacket;
 
 /**
@@ -22,7 +22,7 @@ public class ServerStatistics {
     class StatisticsConnectorStringPacketChain extends ConnectorStringPacketChain {
 
         @Override
-        protected boolean consume(ClientHandler handler, StringReceivePacket stringReceivePacket) {
+        protected boolean consume(ConnectorHandler handler, StringReceivePacket stringReceivePacket) {
             // 接收数据量自增
             receiveSize++;
             return false;

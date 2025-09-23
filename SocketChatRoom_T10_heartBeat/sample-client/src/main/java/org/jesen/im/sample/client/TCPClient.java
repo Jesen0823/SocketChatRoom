@@ -1,51 +1,25 @@
 package org.jesen.im.sample.client;
 
 import org.jesen.im.sample.client.bean.ServerInfo;
-import org.jesen.im.sample.foo.Foo;
-import org.jesen.library.clink.core.Connector;
-import org.jesen.library.clink.core.Packet;
-import org.jesen.library.clink.core.ReceivePacket;
+import org.jesen.im.sample.foo.handle.ConnectorHandler;
+import org.jesen.im.sample.foo.handle.chain.ConnectorStringPacketChain;
+import org.jesen.library.clink.box.StringReceivePacket;
 import org.jesen.library.clink.utils.CloseUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 
-public class TCPClient extends Connector {
-    private final File cachePath;
+public class TCPClient extends ConnectorHandler {
 
     public TCPClient(SocketChannel socketChannel, File cachePath) throws IOException {
-        this.cachePath = cachePath;
-        setup(socketChannel);
+        super(socketChannel, cachePath);
+        getStringPacketChain().appendLast(new PrintStringPacketChain());
     }
 
-    public void exit() {
-        CloseUtils.close(this);
-    }
-
-    @Override
-    protected File createNewReceiveFile() {
-        return Foo.createRandomTemp(cachePath);
-    }
-
-    @Override
-    public void onChannelClosed(SocketChannel channel) {
-        super.onChannelClosed(channel);
-        System.out.println("连接已关闭，无法读取数据");
-    }
-
-    @Override
-    protected void onReceiveNewPacket(ReceivePacket packet) {
-        super.onReceiveNewPacket(packet);
-        if (packet.type() == Packet.TYPE_MEMORY_STRING) {
-            String msg = (String) packet.entity();
-            System.out.println("TCPClient, onReceiveNewPacket() " + key.toString() + ": [Type:" + packet.type() +
-                    ", Length:" + packet.length() + "], data: " + msg);
-        }
-    }
-
-    public static TCPClient startWith(ServerInfo info, File cacheFile) throws IOException {
+    static TCPClient startWith(ServerInfo info, File cacheFile) throws IOException {
         SocketChannel socketChannel = SocketChannel.open();
 
         // 连接本地，端口2000；超时时间3000ms
@@ -62,5 +36,14 @@ public class TCPClient extends Connector {
             CloseUtils.close(socketChannel);
         }
         return null;
+    }
+
+    private class PrintStringPacketChain extends ConnectorStringPacketChain {
+        @Override
+        protected boolean consume(ConnectorHandler handler, StringReceivePacket model) {
+            String str = model.entity();
+            System.out.println("get: " + str);
+            return true;
+        }
     }
 }

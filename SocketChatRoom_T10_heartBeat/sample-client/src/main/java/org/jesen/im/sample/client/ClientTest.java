@@ -4,6 +4,7 @@ import org.jesen.im.sample.client.bean.ServerInfo;
 import org.jesen.im.sample.foo.Foo;
 import org.jesen.library.clink.core.IoContext;
 import org.jesen.library.clink.impl.IoSelectorProvider;
+import org.jesen.library.clink.impl.SchedulerImpl;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,6 +18,7 @@ public class ClientTest {
         File cachePath = Foo.getCacheDir("client/test");
         IoContext.setup()
                 .ioProvider(new IoSelectorProvider())
+                .scheduler(new SchedulerImpl(1))
                 .start();
 
         ServerInfo info = UDPSearcher.searchServer(10000);

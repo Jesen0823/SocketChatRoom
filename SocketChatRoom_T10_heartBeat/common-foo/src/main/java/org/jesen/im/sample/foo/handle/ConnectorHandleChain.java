@@ -1,4 +1,4 @@
-package org.jesen.im.sample.server.handle;
+package org.jesen.im.sample.foo.handle;
 
 public abstract class ConnectorHandleChain<M> {
     private volatile ConnectorHandleChain<M> next;
@@ -36,7 +36,7 @@ public abstract class ConnectorHandleChain<M> {
         }
     }
 
-    public synchronized boolean handle(ClientHandler handler, M model) {
+    public synchronized boolean handle(ConnectorHandler handler, M model) {
         ConnectorHandleChain<M> next = this.next;
         // 当前节点消费
         if (consume(handler, model)) {
@@ -51,9 +51,9 @@ public abstract class ConnectorHandleChain<M> {
         return consumeAgain(handler, model);
     }
 
-    protected abstract boolean consume(ClientHandler handler, M model);
+    protected abstract boolean consume(ConnectorHandler handler, M model);
 
-    protected boolean consumeAgain(ClientHandler handler, M model) {
+    protected boolean consumeAgain(ConnectorHandler handler, M model) {
         return false;
     }
 }

@@ -1,13 +1,14 @@
-package org.jesen.im.sample.server.handle;
+package org.jesen.im.sample.foo.handle;
 
 
 import org.jesen.im.sample.foo.Foo;
-import org.jesen.im.sample.server.handle.chain.ConnectorCloseChain;
-import org.jesen.im.sample.server.handle.chain.ConnectorStringPacketChain;
-import org.jesen.im.sample.server.handle.chain.DefaultNonConnectorStringPacketChain;
-import org.jesen.im.sample.server.handle.chain.DefaultPrintConnectorCloseChain;
+import org.jesen.im.sample.foo.handle.chain.ConnectorCloseChain;
+import org.jesen.im.sample.foo.handle.chain.ConnectorStringPacketChain;
+import org.jesen.im.sample.foo.handle.chain.DefaultNonConnectorStringPacketChain;
+import org.jesen.im.sample.foo.handle.chain.DefaultPrintConnectorCloseChain;
 import org.jesen.library.clink.box.StringReceivePacket;
 import org.jesen.library.clink.core.Connector;
+import org.jesen.library.clink.core.IoContext;
 import org.jesen.library.clink.core.Packet;
 import org.jesen.library.clink.core.ReceivePacket;
 import org.jesen.library.clink.utils.CloseUtils;
@@ -15,19 +16,15 @@ import org.jesen.library.clink.utils.CloseUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.Executor;
 
-public class ClientHandler extends Connector {
+public class ConnectorHandler extends Connector {
     private final String clientInfo;
     private final File cachePath;
     private final ConnectorCloseChain closeChain = new DefaultPrintConnectorCloseChain();
     // 普通链表头
     private final ConnectorStringPacketChain stringPacketChain = new DefaultNonConnectorStringPacketChain();
-    private final Executor deliveryPool;
 
-
-    public ClientHandler(SocketChannel socketChannel, File cachePath, Executor deliveryPool) throws IOException {
-        this.deliveryPool = deliveryPool;
+    public ConnectorHandler(SocketChannel socketChannel, File cachePath) throws IOException {
         this.clientInfo = socketChannel.getRemoteAddress().toString();
         this.cachePath = cachePath;
 
@@ -36,7 +33,6 @@ public class ClientHandler extends Connector {
 
     public void exit() {
         CloseUtils.close(this);
-        closeChain.handle(this, this);
     }
 
     public String getClientInfo() {
@@ -61,16 +57,16 @@ public class ClientHandler extends Connector {
     }
 
     private void deliveryStringPacket(StringReceivePacket packet) {
-        deliveryPool.execute(() -> {
+        IoContext.get().getScheduler().delivery(() -> {
             stringPacketChain.handle(this, packet);
         });
     }
 
-    public ConnectorStringPacketChain getStringPacketChain(){
+    public ConnectorStringPacketChain getStringPacketChain() {
         return stringPacketChain;
     }
 
-    public ConnectorHandleChain getCloseChain(){
+    public ConnectorHandleChain getCloseChain() {
         return closeChain;
     }
 
