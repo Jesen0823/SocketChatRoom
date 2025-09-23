@@ -7,6 +7,7 @@ import org.jesen.library.clink.box.StringSendPacket;
 import org.jesen.library.clink.impl.SocketChannelAdapter;
 import org.jesen.library.clink.impl.async.AsyncReceiveDispatcher;
 import org.jesen.library.clink.impl.async.AsyncSendDispatcher;
+import org.jesen.library.clink.utils.CloseUtils;
 
 import java.io.Closeable;
 import java.io.File;
@@ -87,7 +88,7 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
 
     @Override
     public void onChannelClosed(SocketChannel channel) {
-
+        CloseUtils.close(this);
     }
 
     protected void onReceiveNewMessage(String str) {
@@ -98,5 +99,7 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
         //System.out.println("--onReceiveNewPacket");
         //System.out.println("onReceiveNewPacket() " + key.toString() + ": [Type:" + packet.type() + ", Length:" + packet.length() + "]");
     }
+
+    public  UUID getKey(){ return key; }
 }
 

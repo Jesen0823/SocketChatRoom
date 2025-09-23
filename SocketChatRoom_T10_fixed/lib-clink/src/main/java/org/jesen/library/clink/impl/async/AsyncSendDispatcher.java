@@ -14,8 +14,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventProcessor, AsyncPacketReader.PacketProvider {
     private final Sender sender;
     private final Queue<SendPacket> queue = new ConcurrentLinkedDeque<>();
-    private final AtomicBoolean isSending = new AtomicBoolean();
-    private final AtomicBoolean isClosed = new AtomicBoolean();
+    private final AtomicBoolean isSending = new AtomicBoolean(false);
+    private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private final AsyncPacketReader reader = new AsyncPacketReader(this);
 
     public AsyncSendDispatcher(Sender sender) {
@@ -29,6 +29,11 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventPr
         requestSend();
     }
 
+    /**
+     * reader从当前队列中提取一份Packet
+     *
+     * @return 如果队列有可用于发送的数据则返回该Packet
+     */
     @Override
     public SendPacket takePacket() {
         SendPacket packet = queue.poll();
@@ -44,6 +49,8 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventPr
 
     /**
      * 完成Packet发送
+     *
+     * @param isSucceed 是否成功
      */
     @Override
     public void completedPacket(SendPacket packet, boolean isSucceed) {
@@ -81,8 +88,7 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventPr
     @Override
     public void cancel(SendPacket packet) {
         System.out.println("--cancel");
-        boolean result;
-        result = queue.remove(packet);
+        boolean result = queue.remove(packet);
         if (result) {
             packet.cancel();
             return;

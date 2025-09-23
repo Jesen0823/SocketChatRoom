@@ -9,6 +9,11 @@ public class Foo {
 
     public static final String COMMAND_EXIT = "00bye00";
 
+    // 群操作部分
+    public static final String COMMAND_GROUP_JOIN = "--m g join";
+    public static final String COMMAND_GROUP_LEAVE = "--m g leave";
+    public static final String DEFAULT_GROUP_NAME = "ChatQQ";
+
     public static File getCacheDir(String dir) {
 
         String path = System.getProperty("user.dir") + (File.separator + CACHE_DIR + File.separator + dir);

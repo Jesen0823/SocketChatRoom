@@ -13,7 +13,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 写数据到Packet
  * 注册Receiver
  */
-public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsEventProcessor, AsyncPacketWriter.PacketProvider {
+public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsEventProcessor,
+        AsyncPacketWriter.PacketProvider {
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private final Receiver receiver;
