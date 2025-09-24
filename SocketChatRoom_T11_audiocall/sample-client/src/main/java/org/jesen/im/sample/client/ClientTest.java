@@ -2,13 +2,9 @@ package org.jesen.im.sample.client;
 
 import org.jesen.im.sample.client.bean.ServerInfo;
 import org.jesen.im.sample.foo.Foo;
-import org.jesen.im.sample.foo.handle.ConnectorCloseChain;
-import org.jesen.im.sample.foo.handle.ConnectorHandler;
-import org.jesen.library.clink.core.Connector;
 import org.jesen.library.clink.core.IoContext;
 import org.jesen.library.clink.impl.IoSelectorProvider;
 import org.jesen.library.clink.impl.SchedulerImpl;
-import org.jesen.library.clink.utils.CloseUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -16,106 +12,75 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ClientTest {
-    // 不考虑发送消耗，并发量：2000*4/400*1000 = 2w/s 算上来回2次数据解析：4w/s
-    private static final int CLIENT_SIZE = 2000;
-    private static final int SEND_THREAD_SIZE = 4;
-    private static final int SEND_THREAD_DELAY = 400;
-    private static volatile boolean done;
+    private static boolean done;
 
-    @SuppressWarnings("ResultOfMethodCallIgnored")
     public static void main(String[] args) throws IOException {
-        ServerInfo info = UDPSearcher.searchServer(10000);
-        System.out.println("Server:" + info);
-        if (info == null) {
-            return;
-        }
-
         File cachePath = Foo.getCacheDir("client/test");
         IoContext.setup()
                 .ioProvider(new IoSelectorProvider())
                 .scheduler(new SchedulerImpl(1))
                 .start();
 
+        ServerInfo info = UDPSearcher.searchServer(10000);
+        System.out.println("Server:" + info);
+        if (info == null) {
+            return;
+        }
+
         // 当前连接数量
         int size = 0;
-        final List<TCPClient> tcpClients = new ArrayList<>(CLIENT_SIZE);
-
-        // 关闭时移除
-        final ConnectorCloseChain closeChain = new ConnectorCloseChain() {
-            @Override
-            protected boolean consume(ConnectorHandler handler, Connector connector) {
-                //noinspection SuspiciousMethodCalls
-                tcpClients.remove(handler);
-                if (tcpClients.size() == 0) {
-                    CloseUtils.close(System.in);
-                }
-                return false;
-            }
-        };
-
-        // 添加
-        for (int i = 0; i < CLIENT_SIZE; i++) {
+        final List<TCPClient> tcpClients = new ArrayList<>();
+        for (int i = 0; i < 200; i++) {
             try {
-                TCPClient tcpClient = TCPClient.startWith(info, cachePath, false);
+                TCPClient tcpClient = TCPClient.startWith(info, cachePath);
                 if (tcpClient == null) {
                     throw new NullPointerException();
                 }
-                // 添加关闭链式节点
-                tcpClient.getCloseChain().appendLast(closeChain);
+
                 tcpClients.add(tcpClient);
+
                 System.out.println("连接成功：" + (++size));
+
             } catch (IOException | NullPointerException e) {
                 System.out.println("连接异常");
                 break;
             }
         }
 
-
         System.in.read();
 
         Runnable runnable = () -> {
             while (!done) {
-                TCPClient[] copyClients = tcpClients.toArray(new TCPClient[0]);
-                for (TCPClient client : copyClients) {
-                    client.send("Hello~~");
+                for (TCPClient tcpClient : tcpClients) {
+                    tcpClient.send("HuHuHu~~");
                 }
-
-                if (SEND_THREAD_DELAY > 0) {
-                    try {
-                        Thread.sleep(SEND_THREAD_DELAY);
-                    } catch (InterruptedException ignored) {
-                    }
+                try {
+                    Thread.sleep(1500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
         };
 
-        List<Thread> threads = new ArrayList<>(SEND_THREAD_SIZE);
-        for (int i = 0; i < SEND_THREAD_SIZE; i++) {
-            Thread thread = new Thread(runnable);
-            thread.start();
-            threads.add(thread);
-        }
+        Thread thread = new Thread(runnable);
+        thread.start();
 
         System.in.read();
 
         // 等待线程完成
         done = true;
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         // 客户端结束操作
-        TCPClient[] copyClients = tcpClients.toArray(new TCPClient[0]);
-        for (TCPClient tcpClient : copyClients) {
+        for (TCPClient tcpClient : tcpClients) {
             tcpClient.exit();
         }
 
-        // 关闭框架线程池
         IoContext.close();
-
-        // 强制结束处于等待的线程
-        for (Thread thread : threads) {
-            try {
-                thread.interrupt();
-            } catch (Exception ignored) {
-            }
-        }
     }
 }
+

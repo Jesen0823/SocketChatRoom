@@ -1,6 +1,7 @@
 package org.jesen.library.clink.frames;
 
 import org.jesen.library.clink.core.IoArgs;
+import org.jesen.library.clink.frames.base.AbsReceiveFrame;
 
 import java.io.IOException;
 

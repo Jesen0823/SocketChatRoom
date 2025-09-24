@@ -3,6 +3,7 @@ package org.jesen.library.clink.frames;
 import org.jesen.library.clink.core.Frame;
 import org.jesen.library.clink.core.IoArgs;
 import org.jesen.library.clink.core.SendPacket;
+import org.jesen.library.clink.frames.base.AbsSendPacketFrame;
 
 import java.io.IOException;
 import java.io.InputStream;

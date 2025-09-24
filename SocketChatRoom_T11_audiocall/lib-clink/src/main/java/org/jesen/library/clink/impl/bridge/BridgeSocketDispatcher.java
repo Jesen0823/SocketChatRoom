@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 当前调度器同时实现了发送者与接受者调度逻辑
  * 核心思想为：把接受者接收到的数据全部转发给发送者
  */
+/*
 public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher {
     // 环形缓冲区用来暂存数据
     private final CircularByteBuffer buffer = new CircularByteBuffer(512, true);
@@ -125,9 +126,11 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
         this.receiver = receiver;
     }
 
-    /**
+    */
+/**
      * 绑定一个新的发送者，将老的发送者对应的调度设置为null
-     */
+     *//*
+
     public void bindSender(Sender sender) {
         final Sender oldSender = this.sender;
         if (oldSender != null) {
@@ -145,9 +148,11 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
         }
     }
 
-    /**
+    */
+/**
      * 外部初始化好了桥接调度器后需要调用start方法开始
-     */
+     *//*
+
     @Override
     public void start() {
         receiver.setReceiveListener(receiveEventProcessor);
@@ -197,3 +202,4 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
         return buffer.getSpaceLeft();
     }
 }
+*/

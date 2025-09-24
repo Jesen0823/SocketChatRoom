@@ -16,10 +16,12 @@ public abstract class AbsByteArrayReceivePacket<E> extends ReceivePacket<ByteArr
     }
 
     /**
-     * 创建流
+     * 创建流操作，直接返回一个@link ByteArrayOutputStream}
+     *
+     * @return {@link ByteArrayOutputStream}
      */
     @Override
-    protected ByteArrayOutputStream createStream() {
+    protected final ByteArrayOutputStream createStream() {
         return new ByteArrayOutputStream((int) length);
     }
 }

@@ -8,22 +8,23 @@ import java.io.InputStream;
  */
 public abstract class SendPacket<T extends InputStream> extends Packet<T> {
 
+    /**
+     * 取消发送标记
+     */
     private boolean isCanceled;
 
     public boolean isCanceled() {
         return isCanceled;
     }
 
-    /**
-     * 取消发送
-     */
-    public void cancel(){
+    public void cancel() {
         isCanceled = true;
     }
 
     /**
      * 获取当前可用数据大小
-     * 对于流的类型有限制，文件流一般可用正常获取，对于正在填充的流不一定有效，或得不到准确值
+     * PS: 对于流的类型有限制，文件流一般可用正常获取，
+     * 对于正在填充的流不一定有效，或得不到准确值
      * <p>
      * 我们利用该方法不断得到直流传输的可发送数据量，从而不断生成Frame
      * <p>
@@ -36,12 +37,12 @@ public abstract class SendPacket<T extends InputStream> extends Packet<T> {
      */
     public int available() {
         InputStream stream = open();
-        if (stream == null) {
-            return 0;
-        }
         try {
             int available = stream.available();
-            return Math.max(available, 0);
+            if (available < 0) {
+                return 0;
+            }
+            return available;
         } catch (IOException e) {
             return 0;
         }

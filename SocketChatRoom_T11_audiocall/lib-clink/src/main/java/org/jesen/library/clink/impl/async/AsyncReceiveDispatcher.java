@@ -9,17 +9,22 @@ import org.jesen.library.clink.utils.CloseUtils;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsEventListener, AsyncPacketWriter.PacketProvider {
+/**
+ * 写数据到Packet
+ * 注册Receiver
+ */
+public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsEventProcessor,
+        AsyncPacketWriter.PacketProvider {
 
     private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private final Receiver receiver;
     private final ReceivePacketCallback receiveCallback;
-    private final AsyncPacketWriter packetWriter = new AsyncPacketWriter(this);
+    private final AsyncPacketWriter writer = new AsyncPacketWriter(this);
 
     public AsyncReceiveDispatcher(Receiver receiver, ReceivePacketCallback receiveCallback) {
         this.receiver = receiver;
-        this.receiver.setReceiveListener(this);
         this.receiveCallback = receiveCallback;
+        this.receiver.setReceiveListener(this);
     }
 
     @Override
@@ -27,22 +32,23 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
         registerReceive();
     }
 
+
     @Override
     public void stop() {
-        receiver.setReceiveListener(null);
+        System.out.println("--AsyncReceiveDispatcher,stop.");
     }
 
     @Override
     public void close() throws IOException {
         if (isClosed.compareAndSet(false, true)) {
-            packetWriter.close();
+            writer.close();
         }
     }
 
     private void registerReceive() {
         try {
             receiver.postReceiveAsync();
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
             closeAndNotify();
         }
@@ -54,36 +60,31 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
 
     @Override
     public IoArgs provideIoArgs() {
-        IoArgs args = packetWriter.takeIoArgs();
-        // 开始写入数据了
-        args.startWriting();
-        return args;
+        IoArgs ioArgs = writer.takeIoArgs();
+        ioArgs.startWriting();
+        return ioArgs;
     }
 
     @Override
-    public boolean onConsumeFailed(IoArgs args, Throwable e) {
-        return false;
+    public void onConsumeFailed(IoArgs args, Exception e) {
+        e.printStackTrace();
     }
 
     @Override
-    public boolean onConsumeCompleted(IoArgs args) {
+    public void onConsumeCompleted(IoArgs args) {
         if (isClosed.get()) {
-            return false;
+            return;
         }
-        // 消费数据之前，标识已经完成
+        // 消费IoArgs之前，标记为写入完成
         args.finishWriting();
-        // 有数据才消费
         do {
-            packetWriter.consumeIoArgs(args);
+            writer.consumeIoArgs(args);
         } while (args.remained() && !isClosed.get());
-
-        // 接收下一次数据
-        registerReceive();
-        return true;
+        registerReceive(); // 接收下一次数据
     }
 
     /**
-     * 构建Packet,根据类型、长度构建一份用于接收数据的Packet
+     * 构建Packet,根据类型、长度构建接收数据包
      */
     @Override
     public ReceivePacket takePacket(byte type, long length, byte[] headerInfo) {
@@ -91,7 +92,7 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
     }
 
     /**
-     * 当Packet接收数据完成或终止时回调
+     * 接收数据完成
      */
     @Override
     public void completedPacket(ReceivePacket packet, boolean isSucceed) {
@@ -99,8 +100,11 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
         receiveCallback.onReceivePacketCompleted(packet);
     }
 
+    /**
+     * 接收到心跳
+     */
     @Override
-    public void onReceivedHeartbeat() {
-        receiveCallback.onReceiveHeartbeatCompleted();
+    public void onReceiveHeartbeat() {
+        receiveCallback.onReceiveHeartbeat();
     }
 }

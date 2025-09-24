@@ -4,10 +4,11 @@ import java.io.Closeable;
 import java.io.IOException;
 
 public interface Sender extends Closeable {
+    void setSendListener(IoArgs.IoArgsEventProcessor processor);
 
-    void setSendListener(IoArgs.IoArgsEventListener listener);
-
+    // 异步发送
     boolean postSendAsync() throws IOException;
 
+    // 获取最后发送消息时间
     long getLastWriteTime();
 }

@@ -15,29 +15,19 @@ public interface IoProvider extends Closeable {
     void unRegisterOutput(SocketChannel channel);
 
     abstract class HandleProviderCallback implements Runnable {
-        // 附加参数，用来存储SocketChannel可发送状态时，要发送的数据
-        private volatile IoArgs attach;
+        // 上一份没有发送完成的IoArgs
+        protected volatile IoArgs attach;
 
         @Override
         public final void run() {
-            onProviderIo(attach);
+            onProviderTo(attach);
         }
 
-        public final void setAttach(IoArgs attach) {
-            this.attach = attach;
-        }
+        protected abstract void onProviderTo(IoArgs args);
 
-        protected abstract void onProviderIo(IoArgs attach);
-
-        public final <T> T getAttach() {
-            @SuppressWarnings({"UnnecessaryLocalVariable", "unchecked"})
-            T attach = (T) this.attach;
-            return attach;
-        }
-
-        public void checkAttachNull(){
-            if (attach!=null){
-                throw new IllegalStateException("Current attach is not empty.");
+        public void checkAttachNull() {
+            if (attach != null) {
+                throw new IllegalStateException("Current attach is not null.");
             }
         }
     }

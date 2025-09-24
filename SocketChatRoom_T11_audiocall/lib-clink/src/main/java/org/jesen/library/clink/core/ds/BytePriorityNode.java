@@ -5,13 +5,16 @@ package org.jesen.library.clink.core.ds;
  */
 public class BytePriorityNode<Item> {
     public byte priority;
-    public Item item;
+    public Item item; // 节点要存储的数据
     public BytePriorityNode<Item> next;
 
     public BytePriorityNode(Item item) {
         this.item = item;
     }
 
+    /**
+     * 按优先级追加节点
+     */
     public void appendWithPriority(BytePriorityNode<Item> node) {
         if (next == null) {
             next = node;

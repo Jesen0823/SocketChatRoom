@@ -1,6 +1,7 @@
 package org.jesen.im.sample.server;
 
 import org.jesen.im.sample.foo.Foo;
+import org.jesen.im.sample.foo.FooGui;
 import org.jesen.im.sample.foo.constants.TCPConstants;
 import org.jesen.library.clink.core.IoContext;
 import org.jesen.library.clink.impl.IoSelectorProvider;
@@ -12,9 +13,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class Server {
-    private static final File cachePath = Foo.getCacheDir("server");
-
     public static void main(String[] args) throws IOException {
+        File cachePath = Foo.getCacheDir("server");
+
         IoContext.setup()
                 .ioProvider(new IoSelectorProvider())
                 .scheduler(new SchedulerImpl(1))
@@ -29,18 +30,20 @@ public class Server {
 
         UDPProvider.start(TCPConstants.PORT_SERVER);
 
+        // Gui监控界面
+        FooGui gui = new FooGui("Clink-Server", tcpServer::getStatusString);
+        gui.doShow();
+
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
         String str;
         do {
             str = bufferedReader.readLine();
-            if (str == null
-                    || Foo.COMMAND_EXIT.equalsIgnoreCase(str)) {
+            if (str == null || Foo.COMMAND_EXIT.equalsIgnoreCase(str)) {
                 break;
             }
-            if (str.length()==0){
+            if (str.length() == 0) {
                 continue;
             }
-            // 发送字符串
             tcpServer.broadcast(str);
         } while (true);
 
@@ -48,5 +51,6 @@ public class Server {
         tcpServer.stop();
 
         IoContext.close();
+        gui.doDismiss();
     }
 }

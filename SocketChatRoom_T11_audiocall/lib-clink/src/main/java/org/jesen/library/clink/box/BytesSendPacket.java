@@ -5,10 +5,10 @@ import org.jesen.library.clink.core.SendPacket;
 import java.io.ByteArrayInputStream;
 
 /**
- * 纯Byte数组发送包
+ * Byte数组发送包
  */
 public class BytesSendPacket extends SendPacket<ByteArrayInputStream> {
-    protected final byte[] bytes;
+    private final byte[] bytes;
 
     public BytesSendPacket(byte[] bytes) {
         this.bytes = bytes;

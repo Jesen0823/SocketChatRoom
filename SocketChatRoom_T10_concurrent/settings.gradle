@@ -1,6 +1,0 @@
-rootProject.name = 'SocketChatRoom_T10_concurrent'
-include 'lib-clink'
-include 'common-foo'
-include 'sample-client'
-include 'sample-server'
-

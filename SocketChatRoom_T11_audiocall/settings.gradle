@@ -1,4 +1,4 @@
-rootProject.name = 'SocketChatRoom_T10_concurrent'
+rootProject.name = 'SocketChatRoom_T10_audiocall'
 include 'lib-clink'
 include 'common-foo'
 include 'sample-client'
