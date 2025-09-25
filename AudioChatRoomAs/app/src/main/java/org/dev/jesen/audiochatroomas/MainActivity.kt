@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity(), View.OnClickListener, AppContract.View
 
             override fun afterTextChanged(s: Editable) {
                 // 输入框变化时按钮跟随
-                mSubmitButton!!.setText(if (s.length == 0) R.string.btn_random else R.string.btn_link)
+                mSubmitButton!!.setText(if (s.isEmpty()) R.string.btn_random else R.string.btn_link)
             }
         })
 

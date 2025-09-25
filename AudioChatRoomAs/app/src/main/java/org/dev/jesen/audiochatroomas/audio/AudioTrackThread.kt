@@ -41,7 +41,7 @@ class AudioTrackThread(private val mInputStream: InputStream, audioSessionId: In
         // 初始化回音消除
         try {
             val acousticEchoCanceler = AcousticEchoCanceler.create(audioSessionId)
-            acousticEchoCanceler.setEnabled(true)
+            acousticEchoCanceler.enabled = true
             mAcousticEchoCanceler = acousticEchoCanceler
         } catch (e: Exception) {
             mAcousticEchoCanceler = null

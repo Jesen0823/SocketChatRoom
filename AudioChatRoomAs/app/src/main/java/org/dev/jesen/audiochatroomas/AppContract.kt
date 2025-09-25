@@ -57,7 +57,7 @@ interface AppContract {
 
     companion object {
         // 服务器地址
-        var SERVER_ADDRESS: String = "192.168.1.12"
+        var SERVER_ADDRESS: String = "192.168.143.32"
         init {
             //SERVER_ADDRESS = LocalIpUtils.getLocalIpv4Address()
         }
