@@ -5,6 +5,7 @@ import org.jesen.im.sample.foo.FooGui;
 import org.jesen.im.sample.foo.constants.TCPConstants;
 import org.jesen.library.clink.core.IoContext;
 import org.jesen.library.clink.impl.IoSelectorProvider;
+import org.jesen.library.clink.impl.IoStealingSelectorProvider;
 import org.jesen.library.clink.impl.SchedulerImpl;
 
 import java.io.BufferedReader;
@@ -17,7 +18,7 @@ public class Server {
         File cachePath = Foo.getCacheDir("server");
 
         IoContext.setup()
-                .ioProvider(new IoSelectorProvider())
+                .ioProvider(new IoStealingSelectorProvider(1)) // 替代 .ioProvider(new IoSelectorProvider())
                 .scheduler(new SchedulerImpl(1))
                 .start();
 

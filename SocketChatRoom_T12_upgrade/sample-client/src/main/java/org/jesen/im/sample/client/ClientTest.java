@@ -7,6 +7,7 @@ import org.jesen.im.sample.foo.handle.chain.ConnectorCloseChain;
 import org.jesen.library.clink.core.Connector;
 import org.jesen.library.clink.core.IoContext;
 import org.jesen.library.clink.impl.IoSelectorProvider;
+import org.jesen.library.clink.impl.IoStealingSelectorProvider;
 import org.jesen.library.clink.impl.SchedulerImpl;
 import org.jesen.library.clink.utils.CloseUtils;
 
@@ -31,7 +32,8 @@ public class ClientTest {
 
         File cachePath = Foo.getCacheDir("client/test");
         IoContext.setup()
-                .ioProvider(new IoSelectorProvider())
+                //.ioProvider(new IoSelectorProvider())
+                .ioProvider(new IoStealingSelectorProvider(1))
                 .scheduler(new SchedulerImpl(1))
                 .start();
 
@@ -54,7 +56,7 @@ public class ClientTest {
 
         for (int i = 0; i < CLIENT_SIZE; i++) {
             try {
-                TCPClient tcpClient = TCPClient.startWith(info, cachePath,false);
+                TCPClient tcpClient = TCPClient.startWith(info, cachePath, false);
                 if (tcpClient == null) {
                     throw new NullPointerException();
                 }
@@ -91,7 +93,7 @@ public class ClientTest {
 
         List<Thread> threads = new ArrayList<>(SEND_THREAD_SIZE);
         for (int i = 0; i < SEND_THREAD_SIZE; i++) {
-            Thread thread = new Thread(runnable);
+            Thread thread = new Thread(runnable, "ClientTest-send-thread" + i);
             thread.start();
             threads.add(thread);
         }
