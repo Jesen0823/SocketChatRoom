@@ -103,9 +103,29 @@ ReceivePacket <---------------Frame...Frame <-------IoArgs
 
 
 
+<img src="doc/环形缓冲区示意.jpg" alt="环形缓冲区示意" style="zoom:50%;" /><img src="doc/环形缓冲区示意2.jpg" alt="环形缓冲区示意2" style="zoom:50%;" />
+
 改造：
 
 <img src="D:\Java\SocketChatRoom\SocketChatRoom_T11_audiocall\capture\服务器桥接.jpg" style="zoom:50%;" />
+
+服务器将双方的发送者与接收者进行桥接：
+
+<img src="doc/服务器桥接.jpg" alt="服务器桥接" style="zoom:67%;" />
+
+A客户端接收到的数据放入环形缓冲区中，然后利用B客户端的发送端进行发送，B的接收端会接收数据。
+
+反过来也一样。
+
+
+
+#### 难点：
+
+1. **如何识别需要发起桥接的命令？**
+2. **如何建立管道，即room房间？**
+3. **房间建立，销毁，连接复用。**
+
+
 
 ##### 语音数据编码
 
@@ -125,7 +145,11 @@ Opus的优势：
 
 <img src="D:\Java\SocketChatRoom\SocketChatRoom_T11_audiocall\capture\语言编码技术.jpg" style="zoom:50%;" />
 
+### Android客户端集成
 
+编解码器采用Opus开源库封装。
+
+去掉服务发现功能，直接输入服务器IP与端口。
 
 
 

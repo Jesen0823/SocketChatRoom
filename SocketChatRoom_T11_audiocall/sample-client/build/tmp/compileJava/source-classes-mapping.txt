@@ -1,13 +1,13 @@
-org/jesen/im/sample/client/ClientTest.java
- org.jesen.im.sample.client.ClientTest
-org/jesen/im/sample/client/bean/ServerInfo.java
- org.jesen.im.sample.client.bean.ServerInfo
-org/jesen/im/sample/client/Client.java
- org.jesen.im.sample.client.Client
- org.jesen.im.sample.client.Client$1
 org/jesen/im/sample/client/UDPSearcher.java
  org.jesen.im.sample.client.UDPSearcher
  org.jesen.im.sample.client.UDPSearcher$Listener
+org/jesen/im/sample/client/bean/ServerInfo.java
+ org.jesen.im.sample.client.bean.ServerInfo
+org/jesen/im/sample/client/ClientTest.java
+ org.jesen.im.sample.client.ClientTest
+org/jesen/im/sample/client/Client.java
+ org.jesen.im.sample.client.Client
+ org.jesen.im.sample.client.Client$1
 org/jesen/im/sample/client/TCPClient.java
  org.jesen.im.sample.client.TCPClient
  org.jesen.im.sample.client.TCPClient$PrintStringPacketChain

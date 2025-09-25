@@ -37,6 +37,9 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
             lastReadTime = System.currentTimeMillis();
 
             IoArgs.IoArgsEventProcessor processor = receiveIoEventProcessor;
+            if (processor == null) {
+                return;
+            }
             if (args == null) {
                 args = processor.provideIoArgs();
             }
@@ -51,7 +54,8 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
                         // 当前的Channel无法发送数据
                         System.out.println("Current read zero data.");
                     }
-                    if (args.remained()) {
+                    // 是否有空闲区间，且是否需要填满空闲区间
+                    if (args.remained() && args.isNeedConsumeRemaining()) {
                         // 当前Args还可以发送数据，再次注册,会加入队列，绑定Select
                         this.attach = args; // 保留未发送完的IoArgs,附加到callback对象
                         ioProvider.registerInput(channel, this);
@@ -77,6 +81,9 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
             lastWriteTime = System.currentTimeMillis();
 
             IoArgs.IoArgsEventProcessor processor = sendIoEventProcessor;
+            if (processor == null) {
+                return;
+            }
             if (args == null) {
                 // 没有上次剩余的，吃的很干净，获取新的IoArgs
                 args = processor.provideIoArgs();
@@ -91,7 +98,8 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
                         // 当前的Channel无法发送数据
                         System.out.println("Current write zero data.");
                     }
-                    if (args.remained()) {
+                    // 是否还有未消费数据，且是否需要一次性消费完
+                    if (args.remained() && args.isNeedConsumeRemaining()) {
                         // 当前Args还可以发送数据，再次注册,会加入队列，绑定Select
                         this.attach = args; // 保留未发送完的IoArgs,附加到callback对象
                         ioProvider.registerOutput(channel, this);

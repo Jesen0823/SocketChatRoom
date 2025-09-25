@@ -11,6 +11,7 @@ import java.util.Random;
  */
 public class AudioRoom {
     private final String roomCode;
+    // 两个连接
     private volatile ConnectorHandler handler1;
     private volatile ConnectorHandler handler2;
 
@@ -35,7 +36,7 @@ public class AudioRoom {
     }
 
     /**
-     * 获取对方
+     * 获取对方连接
      */
     public ConnectorHandler getTheOtherHandler(ConnectorHandler handler) {
         return (handler1 == handler || handler1 == null) ? handler2 : handler1;
