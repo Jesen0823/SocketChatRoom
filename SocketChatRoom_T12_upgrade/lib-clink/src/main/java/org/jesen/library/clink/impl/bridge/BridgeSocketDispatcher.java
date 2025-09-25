@@ -1,7 +1,7 @@
 package org.jesen.library.clink.impl.bridge;
 
-import org.jesen.library.clink.utils.plugin.CircularByteBuffer;
 import org.jesen.library.clink.core.*;
+import org.jesen.library.clink.utils.plugin.CircularByteBuffer;
 
 import java.io.IOException;
 import java.nio.channels.Channels;
@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 当前调度器同时实现了发送者与接受者调度逻辑
  * 核心思想为：把接受者接收到的数据全部转发给发送者
  */
+
 public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher {
     // 环形缓冲区用来暂存数据
     private final CircularByteBuffer buffer = new CircularByteBuffer(512, true);
@@ -29,7 +30,7 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
     private final Receiver receiver;
     private Sender sender;
 
-    private final IoArgs.IoArgsEventListener senderEventProcessor = new IoArgs.IoArgsEventListener() {
+    private final IoArgs.IoArgsEventProcessor senderEventProcessor = new IoArgs.IoArgsEventProcessor() {
 
         @Override
         public IoArgs provideIoArgs() {
@@ -50,26 +51,24 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
         }
 
         @Override
-        public boolean onConsumeFailed(IoArgs args, Throwable e) {
-            synchronized (isSending){
+        public void onConsumeFailed(IoArgs args, Exception e) {
+            synchronized (isSending) {
                 isSending.set(false);
             }
             // 继续请求发送当前数据
             requestSend();
-            return false;
         }
 
         @Override
-        public boolean onConsumeCompleted(IoArgs args) {
-            synchronized (isSending){
+        public void onConsumeCompleted(IoArgs args) {
+            synchronized (isSending) {
                 isSending.set(false);
             }
             // 继续请求发送当前数据
             requestSend();
-            return false;
         }
     };
-    private final IoArgs.IoArgsEventListener receiveEventProcessor = new IoArgs.IoArgsEventListener() {
+    private final IoArgs.IoArgsEventProcessor receiveEventProcessor = new IoArgs.IoArgsEventProcessor() {
 
         @Override
         public IoArgs provideIoArgs() {
@@ -79,12 +78,12 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
         }
 
         @Override
-        public boolean onConsumeFailed(IoArgs args, Throwable e) {
-            return false;
+        public void onConsumeFailed(IoArgs args, Exception e) {
+            e.printStackTrace();
         }
 
         @Override
-        public boolean onConsumeCompleted(IoArgs args) {
+        public void onConsumeCompleted(IoArgs args) {
             args.finishWriting();
             try {
                 args.writeTo(writableByteChannel);
@@ -92,8 +91,8 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
                 e.printStackTrace();
             }
             registerReceive();
+            // 接收数据后请求发送
             requestSend();
-            return false;
         }
     };
 
@@ -128,6 +127,7 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
     /**
      * 绑定一个新的发送者，将老的发送者对应的调度设置为null
      */
+
     public void bindSender(Sender sender) {
         final Sender oldSender = this.sender;
         if (oldSender != null) {
@@ -146,7 +146,8 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
     }
 
     /**
-     * 外部初始化好了桥接调度器后需要调用start方法开始
+     * 外部初始化桥接调度器完成
+     * 调用start方法开始
      */
     @Override
     public void start() {
@@ -156,7 +157,6 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
 
     @Override
     public void stop() {
-        // nothing
         receiver.setReceiveListener(null);
         sender.setSendListener(null);
     }
@@ -197,3 +197,4 @@ public class BridgeSocketDispatcher implements ReceiveDispatcher, SendDispatcher
         return buffer.getSpaceLeft();
     }
 }
+

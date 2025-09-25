@@ -21,46 +21,48 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
     private final IoProvider ioProvider;
     private final OnChannelStatusChangedListener listener;
 
-    private IoArgs.IoArgsEventListener receiveIoEventListener;
-    private IoArgs.IoArgsEventListener sendIoEventListener;
+    private IoArgs.IoArgsEventProcessor receiveIoEventProcessor;
+    private IoArgs.IoArgsEventProcessor sendIoEventProcessor;
 
     private volatile long lastReadTime = System.currentTimeMillis();
     private volatile long lastWriteTime = System.currentTimeMillis();
 
-    // 读取数据的回调
     private final IoProvider.HandleProviderCallback inputCallback = new IoProvider.HandleProviderCallback() {
         @Override
-        protected void onProviderIo(IoArgs args) {
+        protected void onProviderTo(IoArgs args) {
             if (isClosed.get()) {
                 return;
             }
+
             lastReadTime = System.currentTimeMillis();
-            IoArgs.IoArgsEventListener listener = receiveIoEventListener;
-            if (listener == null) {
+
+            IoArgs.IoArgsEventProcessor processor = receiveIoEventProcessor;
+            if (processor == null) {
                 return;
             }
-            // 拿到新的Args
             if (args == null) {
-                args = listener.provideIoArgs();
+                args = processor.provideIoArgs();
             }
+
             try {
+                // 具体的读取操作
                 if (args == null) {
-                    listener.onConsumeFailed(null, new IOException("Provide IoArgs is null"));
+                    processor.onConsumeFailed(null, new IOException("provider IoArgs is null."));
                 } else {
                     int count = args.readFrom(channel);
                     if (count == 0) {
-                        System.out.println("Current read zero data");
+                        // 当前的Channel无法发送数据
+                        System.out.println("Current read zero data.");
                     }
-                    // 检查是否还有空闲空间，以及是否需要填满空闲区间
+                    // 是否有空闲区间，且是否需要填满空闲区间
                     if (args.remained() && args.isNeedConsumeRemaining()) {
-                        // 附加当前未消费完成的args
-                        setAttach(args);
-                        // 再次注册数据发送
+                        // 当前Args还可以发送数据，再次注册,会加入队列，绑定Select
+                        this.attach = args; // 保留未发送完的IoArgs,附加到callback对象
                         ioProvider.registerInput(channel, this);
                     } else {
-                        setAttach(null);
-                        // 读取数据完成
-                        listener.onConsumeCompleted(args);
+                        this.attach = null;
+                        // 写入完成回调
+                        processor.onConsumeCompleted(args);
                     }
                 }
             } catch (IOException ignored) {
@@ -69,41 +71,42 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
         }
     };
 
-    // 写入数据发送数据的回调
     private final IoProvider.HandleProviderCallback outputCallback = new IoProvider.HandleProviderCallback() {
-
         @Override
-        protected void onProviderIo(IoArgs args) {
+        protected void onProviderTo(IoArgs args) {  // args上一份没有发送完成的IoArgs
             if (isClosed.get()) {
                 return;
             }
+
             lastWriteTime = System.currentTimeMillis();
-            IoArgs.IoArgsEventListener listener = sendIoEventListener;
-            if (listener == null) {
+
+            IoArgs.IoArgsEventProcessor processor = sendIoEventProcessor;
+            if (processor == null) {
                 return;
             }
-            // 拿到新的Args
             if (args == null) {
-                args = listener.provideIoArgs();
+                // 没有上次剩余的，吃的很干净，获取新的IoArgs
+                args = processor.provideIoArgs();
             }
-
             try {
                 if (args == null) {
-                    listener.onConsumeFailed(null, new IOException("Provider args is null"));
+                    processor.onConsumeFailed(null, new IOException("ProvideIoArgs is null."));
                 } else {
+                    // 具体的写入操作
                     int count = args.writeTo(channel);
                     if (count == 0) {
-                        System.out.println("Current write zero data");
+                        // 当前的Channel无法发送数据
+                        System.out.println("Current write zero data.");
                     }
-                    // 检查是否还有未消费数据，以及是否需要一次消费完全
+                    // 是否还有未消费数据，且是否需要一次性消费完
                     if (args.remained() && args.isNeedConsumeRemaining()) {
-                        // 附加当前未消费完成的args
-                        setAttach(args);
-                        // 再次注册数据发送
+                        // 当前Args还可以发送数据，再次注册,会加入队列，绑定Select
+                        this.attach = args; // 保留未发送完的IoArgs,附加到callback对象
                         ioProvider.registerOutput(channel, this);
                     } else {
-                        setAttach(null);
-                        listener.onConsumeCompleted(args);
+                        this.attach = null;
+                        // 写入完成回调
+                        processor.onConsumeCompleted(args);
                     }
                 }
             } catch (IOException ignored) {
@@ -122,46 +125,6 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
     }
 
     @Override
-    public long getLastReadTime() {
-        return lastReadTime;
-    }
-
-    @Override
-    public long getLastWriteTime() {
-        return lastWriteTime;
-    }
-
-    @Override
-    public void setReceiveListener(IoArgs.IoArgsEventListener listener) {
-        receiveIoEventListener = listener;
-    }
-
-    @Override
-    public void setSendListener(IoArgs.IoArgsEventListener listener) {
-        sendIoEventListener = listener;
-    }
-
-    @Override
-    public boolean postReceiveAsync() throws Exception {
-        if (isClosed.get()) {
-            throw new IOException("Current channel is closed!");
-        }
-        // 进行Callback状态监测，判断是否处于自循环状态
-        inputCallback.checkAttachNull();
-        return ioProvider.registerInput(channel, inputCallback);
-    }
-
-    @Override
-    public boolean postSendAsync() throws IOException {
-        if (isClosed.get()) {
-            throw new IOException("Current channel is closed.");
-        }
-        // 进行Callback状态监测，判断是否处于自循环状态
-        inputCallback.checkAttachNull();
-        return ioProvider.registerOutput(channel, outputCallback);
-    }
-
-    @Override
     public void close() throws IOException {
         if (isClosed.compareAndSet(false, true)) {
             // 解除注册回调
@@ -172,6 +135,46 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
             // 回调当前Channel已关闭
             listener.onChannelClosed(channel);
         }
+    }
+
+    @Override
+    public void setReceiveListener(IoArgs.IoArgsEventProcessor processor) {
+        receiveIoEventProcessor = processor;
+    }
+
+    @Override
+    public boolean postReceiveAsync() throws IOException {
+        if (isClosed.get()) {
+            throw new IOException("Current channel is closed!");
+        }
+        // 检测Callback状态是否处于自循环状态
+        inputCallback.checkAttachNull();
+        return ioProvider.registerInput(channel, inputCallback);
+    }
+
+    @Override
+    public long getLastReadTime() {
+        return lastReadTime;
+    }
+
+    @Override
+    public void setSendListener(IoArgs.IoArgsEventProcessor processor) {
+        sendIoEventProcessor = processor;
+    }
+
+    @Override
+    public boolean postSendAsync() throws IOException {
+        if (isClosed.get()) {
+            throw new IOException("Current channel is closed!");
+        }
+        // 检测Callback状态是否处于自循环状态
+        inputCallback.checkAttachNull();
+        return ioProvider.registerOutput(channel, outputCallback);
+    }
+
+    @Override
+    public long getLastWriteTime() {
+        return lastWriteTime;
     }
 
     public interface OnChannelStatusChangedListener {

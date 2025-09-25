@@ -11,29 +11,16 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventListener, AsyncPacketReader.PacketProvider {
+public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventProcessor, AsyncPacketReader.PacketProvider {
     private final Sender sender;
     private final Queue<SendPacket> queue = new ConcurrentLinkedDeque<>();
-    private final AtomicBoolean isSending = new AtomicBoolean();
-    private final AtomicBoolean isClosed = new AtomicBoolean();
-
+    private final AtomicBoolean isSending = new AtomicBoolean(false);
+    private final AtomicBoolean isClosed = new AtomicBoolean(false);
     private final AsyncPacketReader reader = new AsyncPacketReader(this);
 
     public AsyncSendDispatcher(Sender sender) {
         this.sender = sender;
-        sender.setSendListener(this);
-    }
-
-
-    @Override
-    public void sendHeartbeat() {
-        // 已经有业务数据在发送，没必要发心跳帧去探测连接状态
-        if (queue.size() > 0) {
-            return;
-        }
-        if (reader.requestSendHeartbeatFrame()){
-            requestSend();
-        }
+        this.sender.setSendListener(this);
     }
 
     @Override
@@ -43,12 +30,28 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventLi
     }
 
     @Override
+    public void sendHeartbeat() {
+        // 有数据在排队发送，则没必要发心跳
+        if (queue.size() >0){
+            return;
+        }
+        if (reader.requestSendHeartbeatFrame()){
+            requestSend();
+            System.out.println("---AsyncSendDispatcher, send a heart!");
+        }
+    }
+
+    /**
+     * reader从当前队列中提取一份Packet
+     *
+     * @return 如果队列有可用于发送的数据则返回该Packet
+     */
+    @Override
     public SendPacket takePacket() {
         SendPacket packet = queue.poll();
         if (packet == null) {
             return null;
         }
-
         if (packet.isCanceled()) {
             // 已取消，不用发送
             return takePacket();
@@ -57,7 +60,9 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventLi
     }
 
     /**
-     * 发送packet完成
+     * 完成Packet发送
+     *
+     * @param isSucceed 是否成功
      */
     @Override
     public void completedPacket(SendPacket packet, boolean isSucceed) {
@@ -65,21 +70,23 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventLi
     }
 
     /**
-     * 请求网络进行数据发送
+     * 请求发送数据
      */
     private void requestSend() {
+        // 真正发送数据,没有完成
         synchronized (isSending) {
             if (isSending.get() || isClosed.get()) {
                 return;
             }
-            // 如果有数据要发送
+            // 返回true代表有数据要发送
             if (reader.requestTackPacket()) {
                 try {
-                    boolean isSucceed = sender.postSendAsync();
-                    if (isSucceed) {
+                    boolean succeed = sender.postSendAsync();
+                    if (succeed) {
                         isSending.set(true);
                     }
                 } catch (IOException e) {
+                    e.printStackTrace();
                     closeAndNotify();
                 }
             }
@@ -92,8 +99,9 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventLi
 
     @Override
     public void cancel(SendPacket packet) {
-        boolean success = queue.remove(packet);
-        if (success) {
+        System.out.println("--cancel");
+        boolean result = queue.remove(packet);
+        if (result) {
             packet.cancel();
             return;
         }
@@ -103,7 +111,6 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventLi
     @Override
     public void close() throws IOException {
         if (isClosed.compareAndSet(false, true)) {
-            // 异常关闭导致的完成
             reader.close();
             queue.clear();
             synchronized (isSending) {
@@ -118,24 +125,20 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventLi
     }
 
     @Override
-    public boolean onConsumeFailed(IoArgs args, Throwable e) {
+    public void onConsumeFailed(IoArgs args, Exception e) {
         e.printStackTrace();
         synchronized (isSending) {
             isSending.set(false);
         }
-        // 继续请求发送当前数据
         requestSend();
-        return false;
     }
 
     @Override
-    public boolean onConsumeCompleted(IoArgs args) {
-        // 继续发送当前包
+    public void onConsumeCompleted(IoArgs args) {
         synchronized (isSending) {
             isSending.set(false);
         }
-        // 继续请求发送当前数据
+        // 继续发送当前包
         requestSend();
-        return false;
     }
 }

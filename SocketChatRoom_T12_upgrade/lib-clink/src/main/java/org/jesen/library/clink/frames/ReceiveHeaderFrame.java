@@ -1,9 +1,12 @@
 package org.jesen.library.clink.frames;
 
 import org.jesen.library.clink.core.IoArgs;
+import org.jesen.library.clink.frames.base.AbsReceiveFrame;
 
 import java.io.IOException;
-
+/**
+ * 接收头帧
+ * */
 public class ReceiveHeaderFrame extends AbsReceiveFrame {
 
     private final byte[] body;
@@ -18,7 +21,7 @@ public class ReceiveHeaderFrame extends AbsReceiveFrame {
                 | ((((long) body[1]) & 0xFFL) << 24)
                 | ((((long) body[2]) & 0xFFL) << 16)
                 | ((((long) body[3]) & 0xFFL) << 8)
-                | (((long) body[0]) & 0xFFL);
+                | (((long) body[4]) & 0xFFL);
     }
 
     public byte getPacketType() {
@@ -38,6 +41,7 @@ public class ReceiveHeaderFrame extends AbsReceiveFrame {
     @Override
     protected int consumeBody(IoArgs args) throws IOException {
         int offset = body.length - bodyRemaining;
+        // 写入body
         return args.writeTo(body, offset);
     }
 }

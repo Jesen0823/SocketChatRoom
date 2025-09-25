@@ -4,6 +4,7 @@ import org.jesen.library.clink.core.Frame;
 import org.jesen.library.clink.core.IoArgs;
 import org.jesen.library.clink.core.ReceivePacket;
 import org.jesen.library.clink.frames.*;
+import org.jesen.library.clink.frames.base.AbsReceiveFrame;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -18,8 +19,9 @@ import java.util.HashMap;
 public class AsyncPacketWriter implements Closeable {
 
     private final PacketProvider provider;
+    // key为唯一标识，value为Packet
     private final HashMap<Short, PacketModel> packetMap = new HashMap<>();
-    private final IoArgs args = new IoArgs();
+    private final IoArgs args = new IoArgs(); // 用来接收数据
     private volatile Frame frameTemp;
 
     AsyncPacketWriter(PacketProvider provider) {
@@ -46,7 +48,7 @@ public class AsyncPacketWriter implements Closeable {
 
             frameTemp = temp;
             if (!args.remained()) {
-                // 没有数据，则直接返回
+                // args已经没有数据，则直接返回
                 return;
             }
         }
@@ -56,7 +58,7 @@ public class AsyncPacketWriter implements Closeable {
         // 消费数据
         do {
             try {
-                if (currentFrame.handle(args)) { // 消费
+                if (currentFrame.handle(args)) { // 返回true,则消费完成
                     // 某帧已接收完成
                     if (currentFrame instanceof ReceiveHeaderFrame) {
                         // 头帧消费完成，则根据头帧信息构建接收的Packet
@@ -92,10 +94,10 @@ public class AsyncPacketWriter implements Closeable {
         if (frame instanceof CancelReceiveFrame) {
             cancelReceivePacket(frame.getBodyIdentifier());
             return null;
-        } else if(frame instanceof HeartbeatReceiveFrame){
-            provider.onReceivedHeartbeat();
+        }else if(frame instanceof HeartbeatReceiveFrame){
+            provider.onReceiveHeartbeat();
             return null;
-        }else if (frame instanceof ReceiveEntityFrame) {
+        } else if (frame instanceof ReceiveEntityFrame) {
             WritableByteChannel channel = getPacketChannel(frame.getBodyIdentifier());
             ((ReceiveEntityFrame) frame).bindPacketChannel(channel);
         }
@@ -166,6 +168,9 @@ public class AsyncPacketWriter implements Closeable {
         }
     }
 
+    /**
+     * 若当前还有正在接收的Packet，则停止对应Packet的接收
+     */
     @Override
     public void close() throws IOException {
         synchronized (packetMap) {
@@ -179,7 +184,7 @@ public class AsyncPacketWriter implements Closeable {
 
     /**
      * 构建一份数据容纳封装
-     * 当前帧如果没有则返回至少6字节长度的IoArgs，
+     * 当前帧如果没有，说明是新的Frame首帧,则返回至少6字节长度的IoArgs，
      * 如果当前帧有，则返回当前帧未消费完成的区间
      *
      * @return IoArgs
@@ -203,14 +208,11 @@ public class AsyncPacketWriter implements Closeable {
         }
     }
 
-    /**
-     * Packet提供者
-     */
     interface PacketProvider {
         ReceivePacket takePacket(byte type, long length, byte[] headerInfo);
 
         void completedPacket(ReceivePacket packet, boolean isSucceed);
 
-        void onReceivedHeartbeat();
+        void onReceiveHeartbeat();
     }
 }

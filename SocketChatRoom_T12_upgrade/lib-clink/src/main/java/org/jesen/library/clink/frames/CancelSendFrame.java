@@ -2,6 +2,7 @@ package org.jesen.library.clink.frames;
 
 import org.jesen.library.clink.core.Frame;
 import org.jesen.library.clink.core.IoArgs;
+import org.jesen.library.clink.frames.base.AbsSendFrame;
 
 import java.io.IOException;
 
@@ -15,7 +16,7 @@ public class CancelSendFrame extends AbsSendFrame {
     }
 
     @Override
-    protected int consumeBody(IoArgs args) throws IOException {
+    protected int consumeBody(IoArgs args) {
         return 0;
     }
 

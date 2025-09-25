@@ -1,14 +1,13 @@
 package org.jesen.im.sample.client;
 
-
 import org.jesen.im.sample.client.bean.ServerInfo;
 import org.jesen.im.sample.foo.Foo;
-import org.jesen.im.sample.foo.handle.ConnectorCloseChain;
 import org.jesen.im.sample.foo.handle.ConnectorHandler;
+import org.jesen.im.sample.foo.handle.chain.ConnectorCloseChain;
 import org.jesen.library.clink.box.FileSendPacket;
 import org.jesen.library.clink.core.Connector;
 import org.jesen.library.clink.core.IoContext;
-import org.jesen.library.clink.core.SchedulerJob;
+import org.jesen.library.clink.core.ScheduleJob;
 import org.jesen.library.clink.core.schedule.IdleTimeoutScheduleJob;
 import org.jesen.library.clink.impl.IoSelectorProvider;
 import org.jesen.library.clink.impl.SchedulerImpl;
@@ -39,14 +38,12 @@ public class Client {
                         .appendLast(new ConnectorCloseChain() {
                             @Override
                             protected boolean consume(ConnectorHandler handler, Connector model) {
-                                // 关闭键盘输入流
                                 CloseUtils.close(System.in);
                                 return true;
                             }
                         });
-                // 添加心跳
-                SchedulerJob schedulerJob = new IdleTimeoutScheduleJob(10, TimeUnit.SECONDS, tcpClient);
-                tcpClient.schedule(schedulerJob);
+                ScheduleJob scheduleJob = new IdleTimeoutScheduleJob(10, TimeUnit.SECONDS,tcpClient);
+                tcpClient.schedule(scheduleJob);
 
                 write(tcpClient);
             } catch (IOException e) {
@@ -69,23 +66,21 @@ public class Client {
         do {
             // 键盘读取一行
             String str = input.readLine();
-
-            if (str == null
-                    || Foo.COMMAND_EXIT.equalsIgnoreCase(str)) {
+            if (str == null || Foo.COMMAND_EXIT.equalsIgnoreCase(str)) {
                 break;
             }
-            if (str.length() == 0) {
+            if (str.length() == 0){
                 continue;
             }
-            // 文件发送
+            // 发送文件
             if (str.startsWith("--f")) {
                 String[] array = str.split(" ");
                 if (array.length >= 2) {
                     String filePath = array[1];
                     File file = new File(filePath);
                     if (file.exists() && file.isFile()) {
-                        FileSendPacket packet = new FileSendPacket(file);
-                        tcpClient.send(packet);
+                        FileSendPacket sendPacket = new FileSendPacket(file);
+                        tcpClient.send(sendPacket);
                         continue;
                     }
                 }

@@ -1,13 +1,13 @@
 package org.jesen.im.sample.server;
 
 import org.jesen.im.sample.foo.Foo;
-import org.jesen.im.sample.foo.handle.ConnectorCloseChain;
 import org.jesen.im.sample.foo.handle.ConnectorHandler;
-import org.jesen.im.sample.foo.handle.ConnectorStringPacketChain;
+import org.jesen.im.sample.foo.handle.chain.ConnectorCloseChain;
+import org.jesen.im.sample.foo.handle.chain.ConnectorStringPacketChain;
 import org.jesen.im.sample.server.audio.AudioRoom;
 import org.jesen.library.clink.box.StringReceivePacket;
 import org.jesen.library.clink.core.Connector;
-import org.jesen.library.clink.core.SchedulerJob;
+import org.jesen.library.clink.core.ScheduleJob;
 import org.jesen.library.clink.core.schedule.IdleTimeoutScheduleJob;
 import org.jesen.library.clink.utils.CloseUtils;
 
@@ -15,7 +15,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
@@ -26,11 +25,11 @@ import java.util.concurrent.TimeUnit;
 
 public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMessageAdapter {
     private final int port;
-    private ServerAcceptor mServerAcceptor;
     private final List<ConnectorHandler> connectorHandlerList = new ArrayList<>();
-    private Selector selector;
     private ServerSocketChannel serverChannel;
     private final File cachePath;
+    private ServerAcceptor acceptor;
+
     private final ServerStatistics statistics = new ServerStatistics();
     private final Map<String, Group> groups = new HashMap<>();
 
@@ -46,36 +45,42 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
     public TCPServer(int port, File cachePath) {
         this.port = port;
         this.cachePath = cachePath;
-        // 添加默认群
+
         this.groups.put(Foo.DEFAULT_GROUP_NAME, new Group(Foo.DEFAULT_GROUP_NAME, this));
     }
 
     public boolean start() {
         try {
-            selector = Selector.open();
-            serverChannel = ServerSocketChannel.open();
-            serverChannel.configureBlocking(false); // 设置为非阻塞
-            serverChannel.socket().bind(new InetSocketAddress(port)); // 绑定本地端口
+            ServerAcceptor acceptor = new ServerAcceptor(this);
+            ServerSocketChannel server = ServerSocketChannel.open();
+            server.configureBlocking(false);
+            // 绑定本地端口
+            server.socket().bind(new InetSocketAddress(port));
+            // 注册客户端连接到达监听
+            server.register(acceptor.getSelector(), SelectionKey.OP_ACCEPT);
+            this.serverChannel = server;
+            this.acceptor = acceptor;
 
-            // 注册客户端连接到达事件
-            serverChannel.register(selector, SelectionKey.OP_ACCEPT);
+            acceptor.start();
 
-            System.out.println("服务器信息：" + serverChannel.getLocalAddress().toString());
+            if (acceptor.awaitRunning()) {
+                System.out.println("服务器准备就绪～");
+                System.out.println("服务器信息：" + serverChannel.getLocalAddress().toString());
+                return true;
+            } else {
+                System.out.println("启动异常！");
+                return false;
+            }
 
-            // 启动客户端监听
-            ServerAcceptor serverAcceptor = new ServerAcceptor(this);
-            mServerAcceptor = serverAcceptor;
-            serverAcceptor.start();
         } catch (IOException e) {
             e.printStackTrace();
             return false;
         }
-        return true;
     }
 
     public void stop() {
-        if (mServerAcceptor != null) {
-            mServerAcceptor.exit();
+        if (acceptor != null) {
+            acceptor.exit();
         }
 
         ConnectorHandler[] connectorHandlers;
@@ -89,13 +94,11 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
         CloseUtils.close(serverChannel);
     }
 
-    void broadcast(String str) {
+    public void broadcast(String str) {
         str = "系统通知：" + str;
+        ConnectorHandler[] connectorHandlers;
         synchronized (connectorHandlerList) {
-            ConnectorHandler[] connectorHandlers;
-            synchronized (connectorHandlerList) {
-                connectorHandlers = connectorHandlerList.toArray(new ConnectorHandler[0]);
-            }
+            connectorHandlers = connectorHandlerList.toArray(new ConnectorHandler[0]);
             for (ConnectorHandler connectorHandler : connectorHandlers) {
                 sendMessageToClient(connectorHandler, str);
             }
@@ -108,51 +111,101 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
         statistics.sendSize++;
     }
 
-    /**
-     * 获取当前数据状态
-     */
-    Object[] getStatusString() {
+    public Object[] getStatusString() {
         return new String[]{
-                "客户端数量：" + connectorHandlerList.size(),
-                "发送数据量：" + statistics.sendSize,
-                "接收数据量：" + statistics.receiveSize
+                "Client count: " + connectorHandlerList.size(),
+                "Send count: " + statistics.sendSize,
+                "Receive count: " + statistics.receiveSize
         };
     }
 
-    /**
-     * 新客户端连接的回调
-     */
     @Override
     public void onNewSocketArrived(SocketChannel channel) {
         try {
             ConnectorHandler connectorHandler = new ConnectorHandler(channel, cachePath);
-            System.out.println(connectorHandler.getClientInfo() + ": Connected");
+            System.out.println("Client [" + connectorHandler.getClientInfo() + "] : Connected!");
 
-            // 添加统计数据责任链节点
+            // 收到消息的处理责任链
             connectorHandler.getStringPacketChain()
-                    .appendLast(statistics.staticsChain())
+                    .appendLast(statistics.statisticsChain())
                     .appendLast(new ParseCommandConnectorStringPacketChain())
                     .appendLast(new ParseAudioStreamCommandStringPacketChain());
 
-            // 添加关闭操作的责任链节点
+            // 关闭链接时的责任链
             connectorHandler.getCloseChain()
-                    .appendLast(new RemoveAudioQueueOnConnectorClosedChain())
-                    .appendLast(new RemoveQueueOnConnectorClosedChain());
+                    .appendLast(new RemoveQueueOnConnectorClosedChain())
+                    .appendLast(new RemoveAudioQueueOnConnectorClosedChain());
 
-            // 添加空闲任务发送心跳包
-            SchedulerJob schedulerJob = new IdleTimeoutScheduleJob(5, TimeUnit.SECONDS, connectorHandler);
-            connectorHandler.schedule(schedulerJob);
+            ScheduleJob scheduleJob = new IdleTimeoutScheduleJob(5, TimeUnit.SECONDS, connectorHandler);
+            connectorHandler.schedule(scheduleJob);
 
             synchronized (connectorHandlerList) {
                 connectorHandlerList.add(connectorHandler);
                 System.out.println("当前客户端数量：" + connectorHandlerList.size());
             }
-            // 回送客户端在服务器的唯一标识
-            sendMessageToClient(connectorHandler,Foo.COMMAND_INFO_NAME+connectorHandler.getKey().toString());
+            // 回送客户端在服务端的唯一标识
+            sendMessageToClient(connectorHandler, Foo.COMMAND_INFO_NAME + connectorHandler.getKey().toString());
         } catch (IOException e) {
             e.printStackTrace();
             System.out.println("客户端连接异常：" + e.getMessage());
         }
+
+    }
+
+    private class RemoveQueueOnConnectorClosedChain extends ConnectorCloseChain {
+        @Override
+        protected boolean consume(ConnectorHandler handler, Connector model) {
+            synchronized (connectorHandlerList) {
+                connectorHandlerList.remove(handler);
+            }
+            // 移除群聊的客户端
+            Group group = groups.get(Foo.DEFAULT_GROUP_NAME);
+            group.removeMember(handler);
+            return true;
+        }
+    }
+
+    private class ParseCommandConnectorStringPacketChain extends ConnectorStringPacketChain {
+
+        @Override
+        protected boolean consume(ConnectorHandler handler, StringReceivePacket model) {
+            String str = model.entity();
+            if (str.startsWith(Foo.COMMAND_GROUP_JOIN)) {
+                Group group = groups.get(Foo.DEFAULT_GROUP_NAME);
+                if (group.addMember(handler)) {
+                    sendMessageToClient(handler, "Join Group [" + group.getName() + "】 success.");
+                }
+                return true;
+            } else if (str.startsWith(Foo.COMMAND_GROUP_LEAVE)) {
+                Group group = groups.get(Foo.DEFAULT_GROUP_NAME);
+                if (group.removeMember(handler)) {
+                    sendMessageToClient(handler, "Leave Group [" + group.getName() + "】 success.");
+                }
+                return true;
+            }
+            return false;
+        }
+
+        @Override
+        protected boolean consumeAgain(ConnectorHandler handler, StringReceivePacket model) {
+            // 第一次没能消费，因为没有节点消费。此时二次消费，直接原路返回
+            sendMessageToClient(handler, model.entity());
+            return true;
+        }
+    }
+
+    /**
+     * 从全部列表中通过Key查询到一个链接
+     */
+    private ConnectorHandler findConnectorFromKey(String key) {
+        synchronized (connectorHandlerList) {
+            for (ConnectorHandler connectorHandler : connectorHandlerList) {
+                if (connectorHandler.getKey().toString().equalsIgnoreCase(key)) {
+                    return connectorHandler;
+                }
+            }
+        }
+        return null;
     }
 
     /**
@@ -169,17 +222,89 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
     }
 
     /**
-     * 从全部列表中通过Key查询到一个链接
+     * 通过音频数据传输流链接寻找命令控制链接
      */
-    private ConnectorHandler findConnectorFromKey(String key) {
-        synchronized (connectorHandlerList) {
-            for (ConnectorHandler handler : connectorHandlerList) {
-                if (handler.getKey().toString().equalsIgnoreCase(key)) {
-                    return handler;
+    private ConnectorHandler findAudioCmdConnector(ConnectorHandler handler) {
+        return audioStreamToCmdMap.get(handler);
+    }
+
+    /**
+     * 音频命令解析
+     */
+    private class ParseAudioStreamCommandStringPacketChain extends ConnectorStringPacketChain {
+        @Override
+        protected boolean consume(ConnectorHandler handler, StringReceivePacket model) {
+            String str = model.entity();
+            if (str.startsWith(Foo.COMMAND_CONNECTOR_BIND)) { // 绑定命令，也就是将音频流绑定到当前的命令流上
+                String key = str.substring(Foo.COMMAND_CONNECTOR_BIND.length());
+                ConnectorHandler audioStreamConnector = findConnectorFromKey(key);
+                if (audioStreamConnector != null) {
+                    // 添加绑定关系
+                    audioCmdToStreamMap.put(handler, audioStreamConnector);
+                    audioStreamToCmdMap.put(audioStreamConnector, handler);
+
+                    // 转换为桥接模式
+                    audioStreamConnector.changeToBridge();
                 }
+            } else if (str.startsWith(Foo.COMMAND_AUDIO_CREATE_ROOM)) {  // 创建房间操作
+                ConnectorHandler audioStreamConnector = findAudioStreamConnector(handler);
+                if (audioStreamConnector != null) {
+                    // 随机创建房间
+                    AudioRoom room = createNewRoom();
+                    // 加入一个客户端
+                    joinRoom(room, audioStreamConnector);
+                    // 发送成功消息
+                    sendMessageToClient(handler, Foo.COMMAND_INFO_AUDIO_ROOM + room.getRoomCode());
+                }
+            } else if (str.startsWith(Foo.COMMAND_AUDIO_LEAVE_ROOM)) {
+                // 离开房间命令
+                ConnectorHandler audioStreamConnector = findAudioStreamConnector(handler);
+                if (audioStreamConnector != null) {
+                    // 任意一人离开都销毁房间
+                    dissolveRoom(audioStreamConnector);
+                    // 发送离开消息
+                    sendMessageToClient(handler, Foo.COMMAND_INFO_AUDIO_STOP);
+                }
+            } else if (str.startsWith(Foo.COMMAND_AUDIO_JOIN_ROOM)) {
+                // 加入房间操作
+                ConnectorHandler audioStreamConnector = findAudioStreamConnector(handler);
+                if (audioStreamConnector != null) {
+                    // 取得房间号
+                    String roomCode = str.substring(Foo.COMMAND_AUDIO_JOIN_ROOM.length());
+                    AudioRoom room = audioRoomMap.get(roomCode);
+                    // 如果找到了房间就走后面流程
+                    if (room != null && joinRoom(room, audioStreamConnector)) {
+                        // 对方
+                        ConnectorHandler theOtherHandler = room.getTheOtherHandler(audioStreamConnector);
+
+                        // 相互搭建好乔
+                        theOtherHandler.bindToBridge(audioStreamConnector.getSender());
+                        audioStreamConnector.bindToBridge(theOtherHandler.getSender());
+
+                        // 成功加入房间
+                        sendMessageToClient(handler, Foo.COMMAND_INFO_AUDIO_START);
+                        // 给对方发送可开始聊天的消息
+                        sendStreamConnectorMessage(theOtherHandler, Foo.COMMAND_INFO_AUDIO_START);
+                    } else {
+                        // 房间没找到，房间人员已满
+                        sendMessageToClient(handler, Foo.COMMAND_INFO_AUDIO_ERROR);
+                    }
+                }
+            } else {
+                return false;
             }
+            return true;
         }
-        return null;
+    }
+
+    /**
+     * 给链接流对应的命令控制链接发送信息
+     */
+    private void sendStreamConnectorMessage(ConnectorHandler streamConnector, String msg) {
+        if (streamConnector != null) {
+            ConnectorHandler audioCmdConnector = findAudioCmdConnector(streamConnector);
+            sendMessageToClient(audioCmdConnector, msg);
+        }
     }
 
     /**
@@ -219,10 +344,11 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
             return;
         }
 
+        // 拿到当前房间的连接并遍历
         ConnectorHandler[] connectors = room.getConnectors();
         for (ConnectorHandler connector : connectors) {
             // 解除桥接
-            connector.relieveBridge();
+            connector.unBindToBridge();
             // 移除缓存
             audioStreamRoomMap.remove(connector);
             if (connector != streamConnector) {
@@ -233,139 +359,6 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
 
         // 销毁房间
         audioRoomMap.remove(room.getRoomCode());
-    }
-
-    /**
-     * 给链接流对应的命令控制链接发送信息
-     */
-    private void sendStreamConnectorMessage(ConnectorHandler streamConnector, String msg) {
-        if (streamConnector != null) {
-            ConnectorHandler audioCmdConnector = findAudioCmdConnector(streamConnector);
-            sendMessageToClient(audioCmdConnector, msg);
-        }
-    }
-
-    /**
-     * 通过音频数据传输流链接寻找命令控制链接
-     */
-    private ConnectorHandler findAudioCmdConnector(ConnectorHandler handler) {
-        return audioStreamToCmdMap.get(handler);
-    }
-
-    /////////////////////////////////////////////////////////////////////////////////////////////
-
-    private class RemoveQueueOnConnectorClosedChain extends ConnectorCloseChain {
-
-        @Override
-        protected boolean consume(ConnectorHandler handler, Connector model) {
-            synchronized (connectorHandlerList) {
-                connectorHandlerList.remove(handler);
-                // 移除群聊中的客户端
-                Group group = groups.get(Foo.DEFAULT_GROUP_NAME);
-                group.removeMember(handler);
-            }
-            return true;
-        }
-    }
-
-    private class ParseCommandConnectorStringPacketChain extends ConnectorStringPacketChain {
-
-        @Override
-        protected boolean consume(ConnectorHandler handler, StringReceivePacket stringReceivePacket) {
-            String str = stringReceivePacket.entity();
-            if (str.startsWith(Foo.COMMAND_GROUP_JOIN)) {
-                Group group = groups.get(Foo.DEFAULT_GROUP_NAME);
-                if (group.addMember(handler)) {
-                    sendMessageToClient(handler, "Join Group: " + group.getName());
-                }
-                return true;
-            } else if (str.startsWith(Foo.COMMAND_GROUP_LEAVE)) {
-                Group group = groups.get(Foo.DEFAULT_GROUP_NAME);
-                if (group.removeMember(handler)) {
-                    sendMessageToClient(handler, "Level Group: " + group.getName());
-                }
-                return true;
-            }
-            return false;
-        }
-
-        @Override
-        protected boolean consumeAgain(ConnectorHandler handler, StringReceivePacket stringReceivePacket) {
-            // 捡漏，当第一次未消费，没有加入到群，进行二次消费
-            sendMessageToClient(handler, stringReceivePacket.entity());
-            return true;
-        }
-    }
-
-    /**
-     * 音频命令解析
-     */
-    private class ParseAudioStreamCommandStringPacketChain extends ConnectorStringPacketChain {
-        @Override
-        protected boolean consume(ConnectorHandler handler, StringReceivePacket stringReceivePacket) {
-            String str = stringReceivePacket.entity();
-            if (str.startsWith(Foo.COMMAND_CONNECTOR_BIND)) {
-                // 绑定命令，也就是将音频流绑定到当前的命令流上
-                String key = str.substring(Foo.COMMAND_CONNECTOR_BIND.length());
-                ConnectorHandler audioStreamConnector = findConnectorFromKey(key);
-                if (audioStreamConnector != null) {
-                    // 添加绑定关系
-                    audioCmdToStreamMap.put(handler, audioStreamConnector);
-                    audioStreamToCmdMap.put(audioStreamConnector, handler);
-                }
-                // 转为桥接模式
-                audioStreamConnector.changeToBridge();
-
-            } else if (str.startsWith(Foo.COMMAND_AUDIO_CREATE_ROOM)) {
-                // 创建房间操作
-                ConnectorHandler audioStreamConnector = findAudioStreamConnector(handler);
-                if (audioStreamConnector != null) {
-                    // 随机创建房间
-                    AudioRoom room = createNewRoom();
-                    // 加入一个客户端
-                    joinRoom(room, audioStreamConnector);
-                    // 发送成功消息
-                    sendMessageToClient(handler, Foo.COMMAND_INFO_AUDIO_ROOM + room.getRoomCode());
-                }
-            } else if (str.startsWith(Foo.COMMAND_AUDIO_LEAVE_ROOM)) {
-                // 离开房间命令
-                ConnectorHandler audioStreamConnector = findAudioStreamConnector(handler);
-                if (audioStreamConnector != null) {
-                    // 任意一人离开都销毁房间
-                    dissolveRoom(audioStreamConnector);
-                    // 发送离开消息
-                    sendMessageToClient(handler, Foo.COMMAND_INFO_AUDIO_STOP);
-                }
-            } else if (str.startsWith(Foo.COMMAND_AUDIO_JOIN_ROOM)) {
-                // 加入房间操作
-                ConnectorHandler audioStreamConnector = findAudioStreamConnector(handler);
-                if (audioStreamConnector != null) {
-                    // 取得房间号
-                    String roomCode = str.substring(Foo.COMMAND_AUDIO_JOIN_ROOM.length());
-                    AudioRoom room = audioRoomMap.get(roomCode);
-                    // 如果找到了房间就走后面流程
-                    if (room != null && joinRoom(room, audioStreamConnector)) {
-                        // 对方
-                        ConnectorHandler theOtherHandler = room.getTheOtherHandler(audioStreamConnector);
-
-                        // 相互搭建好桥
-                        theOtherHandler.bindToBridge(audioStreamConnector.getSender());
-                        audioStreamConnector.bindToBridge(theOtherHandler.getSender());
-
-                        // 成功加入房间
-                        sendMessageToClient(handler, Foo.COMMAND_INFO_AUDIO_START);
-                        // 给对方发送可开始聊天的消息
-                        sendStreamConnectorMessage(theOtherHandler, Foo.COMMAND_INFO_AUDIO_START);
-                    } else {
-                        // 房间没找到，房间人员已满
-                        sendMessageToClient(handler, Foo.COMMAND_INFO_AUDIO_ERROR);
-                    }
-                }
-            } else {
-                return false;
-            }
-            return true;
-        }
     }
 
     /**

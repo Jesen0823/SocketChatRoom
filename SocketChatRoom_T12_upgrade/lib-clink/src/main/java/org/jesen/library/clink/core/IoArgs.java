@@ -13,9 +13,12 @@ import java.nio.channels.WritableByteChannel;
 public class IoArgs {
     // 单次操作最大区间
     private volatile int limit;
-    // 是否需要消费所有的区间(读取/写入)
+
+    // 是否需要消费所有的区间（读取、写入）
     private final boolean isNeedConsumeRemaining;
-    private ByteBuffer buffer;
+
+    // Buffer
+    private final ByteBuffer buffer;
 
     public IoArgs() {
         this(256);
@@ -34,22 +37,23 @@ public class IoArgs {
     /**
      * 从bytes中读取数据
      */
-    public int readFrom(byte[] bytes, int offset) {
-        int size = Math.min(bytes.length - offset, buffer.remaining());
+    public int readFrom(byte[] bytes, int offset, int count) {
+        int size = Math.min(count, buffer.remaining());
         buffer.put(bytes, offset, size);
         return size;
     }
 
-    /**
-     * 从bytes中读取数据
-     */
-    public int readFrom(byte[] bytes, int offset, int count) {
-        int size = Math.min(count, buffer.remaining());
-        if (size < 0) {
-            return 0;
+    public int readFrom(ReadableByteChannel channel) throws IOException {
+        int bytesProduced = 0;
+        while (buffer.hasRemaining()) {
+            int len = channel.read(buffer);
+            if (len < 0) {
+                throw new EOFException();
+            }
+            bytesProduced += len;
         }
-        buffer.put(bytes, offset, size);
-        return size;
+
+        return bytesProduced;
     }
 
     /**
@@ -61,42 +65,6 @@ public class IoArgs {
         return size;
     }
 
-    /**
-     * 从SocketChannel读取数据
-     */
-    public int readFrom(SocketChannel channel) throws IOException {
-        int bytesProduced = 0;
-        int len;
-        do {
-            len = channel.read(buffer);
-            if (len < 0) {
-                throw new EOFException("Cannot read any data with channel:" + channel);
-            }
-            bytesProduced += len;
-        } while (buffer.hasRemaining() && len != 0);
-
-        return bytesProduced;
-    }
-
-    /**
-     * 从bytes中读取数据
-     */
-    public int readFrom(ReadableByteChannel channel) throws IOException {
-        int bytesProduced = 0;
-        while (buffer.hasRemaining()) {
-            int len = channel.read(buffer);
-            if (len < 0) {
-                throw new EOFException();
-            }
-            bytesProduced += len;
-        }
-        return bytesProduced;
-    }
-
-
-    /**
-     * 写入数据到bytes中
-     */
     public int writeTo(WritableByteChannel channel) throws IOException {
         int bytesProduced = 0;
         while (buffer.hasRemaining()) {
@@ -106,9 +74,26 @@ public class IoArgs {
             }
             bytesProduced += len;
         }
+
         return bytesProduced;
     }
 
+    /**
+     * 从SocketChannel读取数据
+     */
+    public int readFrom(SocketChannel channel) throws IOException {
+        ByteBuffer buffer = this.buffer;
+        int bytesProduced = 0;
+        int len;
+        do {
+            len = channel.read(buffer);
+            if (len < 0) {
+                throw new EOFException("Cannot read any data with: " + channel);
+            }
+            bytesProduced += len;
+        } while (buffer.hasRemaining() && len != 0);
+        return bytesProduced;
+    }
 
     /**
      * 向SocketChannel写入数据
@@ -120,7 +105,7 @@ public class IoArgs {
         do {
             len = channel.write(buffer);
             if (len < 0) {
-                throw new EOFException("Current write any data with channel:" + channel);
+                throw new EOFException("Current write any data with channel: " + channel);
             }
             bytesProduced += len;
         } while (buffer.hasRemaining() && len != 0);
@@ -152,33 +137,32 @@ public class IoArgs {
         buffer.flip();
     }
 
+    public void writeLength(int total) {
+        startWriting();
+        buffer.putInt(total);
+        finishWriting();
+    }
+
     public int readLength() {
         return buffer.getInt();
     }
 
     /**
-     * 获取当前容量
+     * 获取当前的容量
      */
     public int capacity() {
         return buffer.capacity();
     }
 
     /**
-     * buffer的可存储区间是否大于0
+     * 是否还有数据需要消费，或者说是否还有空闲区间可以容纳
      */
     public boolean remained() {
         return buffer.remaining() > 0;
     }
 
     /**
-     * 是否需要填满或完全消费所有数据
-     */
-    public boolean isNeedConsumeRemaining() {
-        return isNeedConsumeRemaining;
-    }
-
-    /**
-     * 填充空数据
+     * 填充空数据，实际是移动buffer的position
      */
     public int fillEmpty(int size) {
         int fillSize = Math.min(size, buffer.remaining());
@@ -187,10 +171,10 @@ public class IoArgs {
     }
 
     /**
-     * 清空所有数据
+     * 是否需要填满 或 完全消费所有数据
      */
-    public int setEmpty(int size){
-        return fillEmpty(size);
+    public boolean isNeedConsumeRemaining() {
+        return isNeedConsumeRemaining;
     }
 
     /**
@@ -200,29 +184,17 @@ public class IoArgs {
         this.limit = buffer.capacity();
     }
 
-    public interface IoArgsEventListener {
+    /**
+     * IoArgs 提供者、处理者，数据的生产或消费
+     */
+    public interface IoArgsEventProcessor {
         /**
-         * 提供一份可消费的IoArgs
-         *
-         * @return IoArgs
+         * 提供可消费的IoArgs
          */
         IoArgs provideIoArgs();
 
-        /**
-         * 消费失败时回调
-         *
-         * @param e 异常信息
-         * @return 是否关闭链接，True关闭
-         */
-        boolean onConsumeFailed(IoArgs args, Throwable e);
+        void onConsumeFailed(IoArgs args, Exception e);
 
-        /**
-         * 消费成功
-         *
-         * @param args IoArgs
-         * @return True:直接注册下一份调度，False:无需注册
-         */
-        boolean onConsumeCompleted(IoArgs args);
-
+        void onConsumeCompleted(IoArgs args);
     }
 }

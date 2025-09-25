@@ -10,36 +10,38 @@ import java.nio.channels.SocketChannel;
 import java.util.Iterator;
 import java.util.concurrent.CountDownLatch;
 
-public class ServerAcceptor extends Thread{
+public class ServerAcceptor extends Thread {
     private boolean done = false;
-    private final AcceptListener acceptListener;
-    private final CountDownLatch latch = new CountDownLatch(1);
+    private final AcceptListener listener;
     private final Selector selector;
+    private final CountDownLatch latch = new CountDownLatch(1);
 
-    ServerAcceptor(AcceptListener listener) throws IOException {
+    public ServerAcceptor(AcceptListener listener) throws IOException {
         super("Server-Accept-Thread");
-
-        this.acceptListener = listener;
+        this.listener = listener;
         this.selector = Selector.open();
     }
 
-    boolean awaitRunning(){
+    boolean awaitRunning() {
         try {
             latch.await();
             return true;
         } catch (InterruptedException e) {
             e.printStackTrace();
+            return false;
         }
-        return false;
     }
 
     @Override
     public void run() {
         super.run();
 
+        // 已进入run
         latch.countDown();
 
         Selector selector = this.selector;
+        System.out.println("服务器准备就绪～");
+
         // 等待客户端连接
         do {
             // 得到客户端
@@ -63,7 +65,7 @@ public class ServerAcceptor extends Thread{
                         ServerSocketChannel serverSocketChannel = (ServerSocketChannel) key.channel();
                         // 非阻塞状态拿到一个就绪的客户端
                         SocketChannel socketChannel = serverSocketChannel.accept();
-                        acceptListener.onNewSocketArrived(socketChannel);
+                        listener.onNewSocketArrived(socketChannel);
                     }
                 }
             } catch (IOException e) {
@@ -72,16 +74,19 @@ public class ServerAcceptor extends Thread{
 
         } while (!done);
 
-        System.out.println("ServerAcceptor Finished.");
+        System.out.println("ServerAcceptor finished.");
     }
 
     void exit() {
         done = true;
-        // 唤醒selector的阻塞
         CloseUtils.close(selector);
     }
 
-    interface AcceptListener{
+    Selector getSelector() {
+        return selector;
+    }
+
+    interface AcceptListener {
         void onNewSocketArrived(SocketChannel channel);
     }
 }

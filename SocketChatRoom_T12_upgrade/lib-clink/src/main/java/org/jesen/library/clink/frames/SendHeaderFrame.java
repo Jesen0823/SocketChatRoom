@@ -4,6 +4,7 @@ import org.jesen.library.clink.core.Frame;
 import org.jesen.library.clink.core.IoArgs;
 import org.jesen.library.clink.core.Packet;
 import org.jesen.library.clink.core.SendPacket;
+import org.jesen.library.clink.frames.base.AbsSendPacketFrame;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +31,6 @@ public class SendHeaderFrame extends AbsSendPacketFrame {
         body[2] = (byte) (packetLength >> 16);
         body[3] = (byte) (packetLength >> 8);
         body[4] = (byte) (packetLength);
-
         body[5] = packetType;
         if (packetHeaderInfo != null) {
             System.arraycopy(packetHeaderInfo, 0, body, PACKET_HEADER_FRAME_MIN_LENGTH, packetHeaderInfo.length);
@@ -51,7 +51,7 @@ public class SendHeaderFrame extends AbsSendPacketFrame {
             // 直流类型
             return SendDirectEntityFrame.buildEntityFrame(packet, getBodyIdentifier());
         } else {
-            // 普通类型
+            // 普通数据
             InputStream stream = packet.open();
             ReadableByteChannel channel = Channels.newChannel(stream);
             return new SendEntityFrame(getBodyIdentifier(), packet.length(), channel, packet);

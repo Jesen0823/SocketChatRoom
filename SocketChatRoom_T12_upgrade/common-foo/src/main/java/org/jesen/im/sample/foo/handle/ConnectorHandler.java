@@ -2,6 +2,10 @@ package org.jesen.im.sample.foo.handle;
 
 
 import org.jesen.im.sample.foo.Foo;
+import org.jesen.im.sample.foo.handle.chain.ConnectorCloseChain;
+import org.jesen.im.sample.foo.handle.chain.ConnectorStringPacketChain;
+import org.jesen.im.sample.foo.handle.chain.DefaultNonConnectorStringPacketChain;
+import org.jesen.im.sample.foo.handle.chain.DefaultPrintConnectorCloseChain;
 import org.jesen.library.clink.box.StringReceivePacket;
 import org.jesen.library.clink.core.Connector;
 import org.jesen.library.clink.core.IoContext;
@@ -19,8 +23,8 @@ public class ConnectorHandler extends Connector {
     private final String clientInfo;
     private final File cachePath;
     private final ConnectorCloseChain closeChain = new DefaultPrintConnectorCloseChain();
-    private final ConnectorStringPacketChain stringPacketChain = new DefaultNonConnectorStringChain();
-
+    // 普通链表头
+    private final ConnectorStringPacketChain stringPacketChain = new DefaultNonConnectorStringPacketChain();
 
     public ConnectorHandler(SocketChannel socketChannel, File cachePath) throws IOException {
         this.clientInfo = socketChannel.getRemoteAddress().toString();
@@ -29,32 +33,23 @@ public class ConnectorHandler extends Connector {
         setup(socketChannel);
     }
 
-    public String getClientInfo() {
-        return clientInfo;
-    }
-
     public void exit() {
         CloseUtils.close(this);
     }
 
-    @Override
-    protected File createNewReceiveFile(long length, byte[] headerInfo) {
-        return Foo.createRandomTemp(cachePath);
+    public String getClientInfo() {
+        return clientInfo;
     }
 
     @Override
-    protected OutputStream createNewReceiveDirectOutputStream(long length, byte[] headerInfo) {
-        // 服务器默认创建一个内存存储ByteArrayOutputStream
+    protected OutputStream createNewReceiveDirectOutputStream(long length, byte[] headInfo) {
+        // 默认创建一个内存存储ByteArrayOutputStream
         return new ByteArrayOutputStream();
     }
 
-    /**
-     * 检测到连接断开的回调
-     */
     @Override
-    public void onChannelClosed(SocketChannel channel) {
-        super.onChannelClosed(channel);
-        closeChain.handle(this, this);
+    protected File createNewReceiveFile(long length, byte[] headInfo) {
+        return Foo.createRandomTemp(cachePath);
     }
 
     @Override
@@ -65,7 +60,7 @@ public class ConnectorHandler extends Connector {
                 deliveryStringPacket((StringReceivePacket) packet);
                 break;
             default:
-                System.out.println("New Packet Received: " + packet.type() + "-" + packet.length());
+                System.out.println("onReceiveNewPacket, new Packet: " + packet.length());
         }
     }
 
@@ -79,7 +74,13 @@ public class ConnectorHandler extends Connector {
         return stringPacketChain;
     }
 
-    public ConnectorCloseChain getCloseChain() {
+    public ConnectorHandleChain getCloseChain() {
         return closeChain;
+    }
+
+    @Override
+    public void onChannelClosed(SocketChannel channel) {
+        super.onChannelClosed(channel);
+        closeChain.handle(this, this);
     }
 }

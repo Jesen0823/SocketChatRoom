@@ -3,6 +3,7 @@ package org.jesen.library.clink.frames;
 import org.jesen.library.clink.core.Frame;
 import org.jesen.library.clink.core.IoArgs;
 import org.jesen.library.clink.core.SendPacket;
+import org.jesen.library.clink.frames.base.AbsSendPacketFrame;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,8 +19,8 @@ public class SendDirectEntityFrame extends AbsSendPacketFrame {
     public SendDirectEntityFrame(short identifier, int available, ReadableByteChannel channel,
                                  SendPacket packet) {
         super(Math.min(available, Frame.MAX_CAPACITY)
-                , TYPE_PACKET_ENTITY,
-                FLAG_NONE,
+                , Frame.TYPE_PACKET_ENTITY,
+                Frame.FLAG_NONE,
                 identifier,
                 packet);
         this.channel = channel;
