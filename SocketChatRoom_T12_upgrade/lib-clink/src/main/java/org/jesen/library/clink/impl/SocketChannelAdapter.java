@@ -102,7 +102,7 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
                     if (args.remained() && args.isNeedConsumeRemaining()) {
                         // 当前Args还可以发送数据，再次注册,会加入队列，绑定Select
                         this.attach = args; // 保留未发送完的IoArgs,附加到callback对象
-                        ioProvider.registerOutput(channel, this);
+                        ioProvider.registerOutput(channel, this); // 数据未发送成功，再次注册
                     } else {
                         this.attach = null;
                         // 写入完成回调
@@ -168,8 +168,10 @@ public class SocketChannelAdapter implements Sender, Receiver, Cloneable {
             throw new IOException("Current channel is closed!");
         }
         // 检测Callback状态是否处于自循环状态
-        inputCallback.checkAttachNull();
-        return ioProvider.registerOutput(channel, outputCallback);
+        outputCallback.checkAttachNull();
+        // ioProvider.registerOutput(channel, outputCallback);
+        outputCallback.run(); // 在outputCallback的run()中，一旦 数据未发送成功，再次注册：ioProvider.registerOutput(channel, this);
+        return true;
     }
 
     @Override

@@ -35,9 +35,9 @@ public class IoSelectorProvider implements IoProvider {
         readSelector = Selector.open();
         writeSelector = Selector.open();
 
-        inputHandlePool = Executors.newFixedThreadPool(20,
+        inputHandlePool = Executors.newFixedThreadPool(4,
                 new NameableThreadFactory("IoProvider-Input-Thread-"));
-        outputHandlePool = Executors.newFixedThreadPool(20,
+        outputHandlePool = Executors.newFixedThreadPool(4,
                 new NameableThreadFactory("IoProvider-Output-Thread-"));
 
         // 开始输出输入的监听
@@ -119,7 +119,7 @@ public class IoSelectorProvider implements IoProvider {
 
             try {
                 // 唤醒当前的selector，让selector不处于select()状态
-                selector.wakeup();
+                selector.wakeup(); // 频繁被调用，导致Selector不断地被移除加注册
 
                 SelectionKey key = null;
                 if (channel.isRegistered()) {
@@ -213,6 +213,9 @@ public class IoSelectorProvider implements IoProvider {
         }
     }
 
+    /**
+     * selector事件处理
+     */
     private static void handleSelection(SelectionKey key, int keyOps,
                                         HashMap<SelectionKey, Runnable> map,
                                         ExecutorService pool, AtomicBoolean locker) {

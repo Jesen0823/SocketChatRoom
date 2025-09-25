@@ -81,9 +81,10 @@ public class AsyncSendDispatcher implements SendDispatcher, IoArgs.IoArgsEventPr
             // 返回true代表有数据要发送
             if (reader.requestTackPacket()) {
                 try {
+                    isSending.set(true);
                     boolean succeed = sender.postSendAsync();
-                    if (succeed) {
-                        isSending.set(true);
+                    if (!succeed) {
+                        isSending.set(false);
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
