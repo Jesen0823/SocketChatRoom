@@ -14,12 +14,18 @@ import java.nio.channels.SocketChannel;
 
 public class TCPClient extends ConnectorHandler {
 
-    public TCPClient(SocketChannel socketChannel, File cachePath) throws IOException {
+    public TCPClient(SocketChannel socketChannel, File cachePath,boolean printReceiveMsg) throws IOException {
         super(socketChannel, cachePath);
-        getStringPacketChain().appendLast(new PrintStringPacketChain());
+        if(printReceiveMsg) {
+            getStringPacketChain().appendLast(new PrintStringPacketChain());
+        }
     }
 
     static TCPClient startWith(ServerInfo info, File cacheFile) throws IOException {
+        return startWith(info,cacheFile,true);
+    }
+
+    static TCPClient startWith(ServerInfo info, File cacheFile,boolean printReceiveMsg) throws IOException {
         SocketChannel socketChannel = SocketChannel.open();
 
         // 连接本地，端口2000；超时时间3000ms
@@ -30,7 +36,7 @@ public class TCPClient extends ConnectorHandler {
         System.out.println("服务器信息：" + socketChannel.getRemoteAddress().toString());
 
         try {
-            return new TCPClient(socketChannel, cacheFile);
+            return new TCPClient(socketChannel, cacheFile,printReceiveMsg);
         } catch (Exception e) {
             System.out.println("连接异常");
             CloseUtils.close(socketChannel);
