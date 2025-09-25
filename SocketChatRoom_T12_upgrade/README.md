@@ -237,6 +237,7 @@ c3c237b (HEAD -> main, origin/main, origin/HEAD) [60] Fixed the problem of CUP a
 单线程IO调度：
 
 ```shell
+c0cacc1 (HEAD -> main, origin/main, origin/HEAD) [61] Client send data in single thread and the CUP and memory be more better.
 # 单线程调度优化后：
 # 客户端线程从4个变到1个，运行状态良好
 # 数据传输数据7.9MB/s
