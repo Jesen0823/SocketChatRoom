@@ -1,0 +1,86 @@
+package org.jesen.library.clink.impl;
+
+import org.jesen.library.clink.core.IoProvider;
+import org.jesen.library.clink.impl.stealing.IoTask;
+import org.jesen.library.clink.impl.stealing.StealingSelectorThread;
+import org.jesen.library.clink.impl.stealing.StealingService;
+
+import java.io.IOException;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
+
+/**
+ * 可窃取任务的IoProvider
+ */
+public class IoStealingSelectorProvider implements IoProvider {
+    private final IoStealingThread[] mThreads;
+    private final StealingService mStealingService;
+
+    public IoStealingSelectorProvider(int pooSize) throws IOException {
+        IoStealingThread[] threads = new IoStealingThread[pooSize];
+        for (int i = 0; i < pooSize; i++) {
+            Selector selector = Selector.open();
+            threads[i] = new IoStealingThread("IoProvider-IoStealingThread" + (i + 1), selector);
+        }
+
+        StealingService stealingService = new StealingService(10, threads);
+        for (IoStealingThread thread : threads) {
+            thread.setStealingService(stealingService);
+            thread.setDaemon(false);
+            thread.setPriority(Thread.MAX_PRIORITY);
+            thread.start();
+        }
+
+        this.mStealingService = stealingService;
+        this.mThreads = threads;
+
+    }
+
+    @Override
+    public boolean registerInput(SocketChannel channel, HandleProviderCallback callback) {
+        StealingSelectorThread thread = mStealingService.getNotBusyThread();
+        if (thread != null) {
+            return thread.register(channel, SelectionKey.OP_READ, callback);
+        }
+        return false;
+    }
+
+    @Override
+    public boolean registerOutput(SocketChannel channel, HandleProviderCallback callback) {
+        StealingSelectorThread thread = mStealingService.getNotBusyThread();
+        if (thread != null) {
+            return thread.register(channel, SelectionKey.OP_WRITE, callback);
+        }
+        return false;
+    }
+
+    @Override
+    public void unRegisterInput(SocketChannel channel) {
+        for (IoStealingThread thread : mThreads) {
+            thread.unregister(channel);
+        }
+    }
+
+    @Override
+    public void unRegisterOutput(SocketChannel channel) { }
+
+    @Override
+    public void close() throws IOException {
+        mStealingService.shutdown();
+    }
+
+    static class IoStealingThread extends StealingSelectorThread {
+
+        public IoStealingThread(String name, Selector selector) {
+            super(selector);
+            setName(name);
+        }
+
+        @Override
+        protected boolean processTask(IoTask task) {
+           task.providerCallback.run();
+           return false;
+        }
+    }
+}
