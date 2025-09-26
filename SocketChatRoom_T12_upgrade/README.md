@@ -239,7 +239,7 @@ c3c237b (HEAD -> main, origin/main, origin/HEAD) [60] Fixed the problem of CUP a
 ```shell
 c0cacc1 (HEAD -> main, origin/main, origin/HEAD) [61] Client send data in single thread and the CUP and memory be more better.
 # 单线程调度优化后：
-# 客户端线程从4个变到1个，运行状态良好
+# 客户端IO调度线程从4个变到1个，运行状态良好
 # 数据传输数据7.9MB/s
 # 带宽60Mbps
 # cpu下降了，20%以下
@@ -259,6 +259,46 @@ c0cacc1 (HEAD -> main, origin/main, origin/HEAD) [61] Client send data in single
 单线程IO调度优化-服务端-线程：
 
 ![单线程调度优化-服务端线程](doc/单线程调度优化-服务端线程.jpg)
+
+#### SelectionKey
+
+在 Java NIO 中，`SelectionKey.interestOps(ops)` 是控制 **Selector 对 Channel 的事件监听范围** 的核心 API。
+`SelectionKey` 是 `Channel` 注册到 `Selector` 时返回的 “注册凭证”，其中 `interestOps`（感兴趣的事件集）决定了：**Selector 在轮询时，需要关注该 Channel 上哪些类型的事件**。
+
+调用 `interestOps(ops)` 后，Selector 会 **更新对该 Channel 的监听范围**：
+
+- 后续调用 `selector.select()` 时，仅当 `ops` 中包含的事件在 Channel 上就绪时，该`SelectionKey`才会被加入 “就绪集合”（`selectedKeys()`）；
+- 未包含在`ops`中的事件，即使在 Channel 上发生，Selector 也会忽略，不会将该键加入就绪集合。
+
+`SelectionKey.interestOps()`错误状态:
+
+<img src="doc/selectKey状态.jpg" alt="selectKey状态" style="zoom:80%;" />
+
+SelectionKey的状态在`SelectionKey.OP_READ 、 SelectionKey.OP_WRITE`(1和4)之间切换。
+
+（上图蓝色）左边是感兴趣的事件（比如5,读和写都想关注），右边是就绪状态（比如1，Read）,读就绪后，想调用SelectionKey.interestOps()的目的应该是要对写感兴趣(SelectionKey.OP_WRITE), 即左边目标是要为4，但是以上操作`key.interestOps(key.readyOps() | registerOps)`实际上是`key.interestOps(当前就绪的读也就是1 | 当前的ops读也就是1)`得到0。
+
+传入`0`表示 **清除所有感兴趣的事件**（即 “不关注任何事件”），此时：
+
+- 无论 Channel 上发生什么事件（如可读、可写），Selector 的`select()`都不会将该`SelectionKey`加入就绪集合；
+- 应用程序通过`selector.selectedKeys()`无法获取该键，也就不会处理该 Channel 的任何事件。
+- `interestOps(0)` 只是 “暂时停止监听”，后续可以通过 `interestOps(ops)` 重新设置感兴趣的事件（如 `key.interestOps(SelectionKey.OP_READ)`），Selector 会恢复对该 Channel 的监听。
+
+###### 相关拓展：
+
+>`interestOps(0)` 常用于 **“暂时挂起对 Channel 的监听”**，例如：
+>
+>- 当 Channel 正在处理某个事件（如读取大数据）时，暂时设置`interestOps(0)`，避免 Selector 重复触发同一事件（如数据未读完时再次触发 OP_READ）；
+>- 处理完成后，再重新设置`interestOps(OP_READ)`，恢复监听。
+>- 需要注意 `interestOps(0)` 和 “取消键” 的本质区别：
+>  - `interestOps(0)`：**键仍然有效**，只是暂时不监听事件，可随时恢复；
+>  - `key.cancel()`：**键被永久失效**，Selector 会将其从注册集合中移除，之后无法再通过该键操作 Channel（`isValid()`返回`false`）。
+
+key的状态流转：
+
+<img src="doc/key状态流转1.jpg" alt="key状态流转1" style="zoom:50%;" />
+
+......图片省略
 
 
 

@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.channels.*;
 import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 可窃取任务的线程
@@ -22,10 +23,17 @@ public abstract class StealingSelectorThread extends Thread {
     private final LinkedBlockingQueue<IoTask> mRegisterTaskQueue = new LinkedBlockingQueue<>();
     // Selector.select()后，单次已就绪的任务缓存，暂存，后续会一次性加入到就绪队列 mReadyTaskQueue
     private final List<IoTask> mOnceReadyTaskCache = new ArrayList<>(200);
+    // 任务饱和度
+    private final AtomicLong mSaturatingCapacity = new AtomicLong();
+    private volatile StealingService mStealingService;
 
     public StealingSelectorThread(Selector selector) {
         super("StealingSelector-Thread");
         this.selector = selector;
+    }
+
+    public void setStealingService(StealingService service) {
+        this.mStealingService = service;
     }
 
     /**
@@ -72,8 +80,21 @@ public abstract class StealingSelectorThread extends Thread {
     /**
      * 获取内部的任务队列
      */
-    Queue<IoTask> getReadyTaskQueue() {
+    LinkedBlockingQueue<IoTask> getReadyTaskQueue() {
         return mReadyTaskQueue;
+    }
+
+    /**
+     * 获取饱和程度
+     * 暂时的饱和度量是使用任务执行的次数来定
+     *
+     * @return -1 已失效
+     */
+    long getSaturatingCapacity() {
+        if (selector.isOpen()) {
+            return mSaturatingCapacity.get();
+        }
+        return -1;
     }
 
 
@@ -138,13 +159,30 @@ public abstract class StealingSelectorThread extends Thread {
      * 消费待完成的任务
      */
     private void consumeTodoTasks(final LinkedBlockingQueue<IoTask> readyTaskQueue, LinkedBlockingQueue<IoTask> registerTaskQueue) {
+        final AtomicLong saturatingCapacity = this.mSaturatingCapacity;
         IoTask task = readyTaskQueue.poll();
         while (task != null) {
+            // 增加饱和度
+            saturatingCapacity.incrementAndGet();
+
             if (processTask(task)) { // 返回true，继续关注该任务，再次加入
                 registerTaskQueue.offer(task);
             }
             // 取下一个任务
             task = readyTaskQueue.poll();
+        }
+
+        // 窃取其他任务
+        final StealingService stealingService = this.mStealingService;
+        if (stealingService != null) {
+            task = stealingService.steal(readyTaskQueue);
+            while (task != null) {
+                saturatingCapacity.incrementAndGet();
+                if (processTask(task)) {
+                    registerTaskQueue.offer(task);
+                }
+                task = stealingService.steal(readyTaskQueue);
+            }
         }
     }
 
