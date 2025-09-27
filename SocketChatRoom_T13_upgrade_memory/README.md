@@ -351,3 +351,9 @@ public boolean register(SocketChannel channel, int ops, IoProvider.HandleProvide
 优化后，CPU明显降低，平均8%，内存经过GC之后，平均保持在30MB:
 
 ![内存优化-ClientTest-CPU与内存](doc/内存优化-ClientTest-CPU与内存.jpg)
+
+
+
+使用LongAdder的情形，看起来变化不大：
+
+![内存优化-ClientTest-CPU与内存-LongAdder](doc/内存优化-ClientTest-CPU与内存-LongAdder.jpg)

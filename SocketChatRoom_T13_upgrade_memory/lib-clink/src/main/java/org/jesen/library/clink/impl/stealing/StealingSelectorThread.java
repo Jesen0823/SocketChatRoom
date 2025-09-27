@@ -10,6 +10,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * 可窃取任务的线程
@@ -30,6 +31,7 @@ public abstract class StealingSelectorThread extends Thread {
     private final ConcurrentLinkedQueue<IoTask> mRegisterTaskQueue = new ConcurrentLinkedQueue<>();
     // 任务饱和度
     private final AtomicLong mSaturatingCapacity = new AtomicLong();
+    //private final LongAdder mSaturatingCapacity = new LongAdder();
     private volatile StealingService mStealingService;
     private final AtomicBoolean unRegisterLocker = new AtomicBoolean(false);
 
