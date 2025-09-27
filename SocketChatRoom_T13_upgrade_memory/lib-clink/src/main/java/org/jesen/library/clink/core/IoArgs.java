@@ -102,6 +102,11 @@ public class IoArgs {
         ByteBuffer buffer = this.buffer;
         int bytesProduced = 0;
         int len;
+
+        // 回调当前可读、可写时我们进行数据填充或者消费
+        // 但是过程中可能SocketChannel资源被其他SocketChannel占用了资源
+        // 那么我们应该让出当前的线程调度，让应该得到数据消费的SocketChannel的到CPU调度
+        // 而不应该单纯的buffer.hasRemaining()判断
         do {
             len = channel.write(buffer);
             if (len < 0) {
@@ -193,8 +198,13 @@ public class IoArgs {
          */
         IoArgs provideIoArgs();
 
-        void onConsumeFailed(IoArgs args, Exception e);
+        boolean onConsumeFailed(Throwable e);
 
-        void onConsumeCompleted(IoArgs args);
+        /**
+         * 消费完成
+         *
+         * @return 是否消费成功
+         */
+        boolean onConsumeCompleted(IoArgs args);
     }
 }

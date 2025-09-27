@@ -11,6 +11,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.StandardSocketOptions;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,20 +28,21 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
     private SendDispatcher sendDispatcher;
     private ReceiveDispatcher receiveDispatcher;
     private final List<ScheduleJob> scheduleJobs = new ArrayList<>(4);
+    private volatile Connector bridgeConnector;
 
     // 数据接收到的回调
     private ReceiveDispatcher.ReceivePacketCallback receivePacketCallback = new ReceiveDispatcher.ReceivePacketCallback() {
         @Override
-        public ReceivePacket<?, ?> onArrivedNewPacket(byte type, long length,byte[] headInfo) {
+        public ReceivePacket<?, ?> onArrivedNewPacket(byte type, long length, byte[] headInfo) {
             switch (type) {
                 case Packet.TYPE_MEMORY_BYTES:
                     return new BytesReceivePacket(length);
                 case Packet.TYPE_MEMORY_STRING:
                     return new StringReceivePacket(length);
                 case Packet.TYPE_STREAM_FILE:
-                    return new FileReceivePacket(length, createNewReceiveFile(length,headInfo));
+                    return new FileReceivePacket(length, createNewReceiveFile(length, headInfo));
                 case Packet.TYPE_STREAM_DIRECT:
-                    return new StreamDirectReceivePacket(createNewReceiveDirectOutputStream(length,headInfo),length);
+                    return new StreamDirectReceivePacket(createNewReceiveDirectOutputStream(length, headInfo), length);
                 default:
                     throw new UnsupportedOperationException("Unsupported packet type:" + type);
             }
@@ -59,10 +61,18 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
 
     protected abstract OutputStream createNewReceiveDirectOutputStream(long length, byte[] headInfo);
 
-    protected abstract File createNewReceiveFile(long length,byte[] headInfo);
+    protected abstract File createNewReceiveFile(long length, byte[] headInfo);
 
     public void setup(SocketChannel socketChannel) throws IOException {
         this.channel = socketChannel;
+
+        socketChannel.configureBlocking(false);
+        socketChannel.socket().setSoTimeout(1000);
+        socketChannel.socket().setPerformancePreferences(1, 3, 3); // 超时、延迟、带宽的权重
+        socketChannel.setOption(StandardSocketOptions.SO_RCVBUF, 16 * 1024);  // 设置相关缓冲区大小
+        socketChannel.setOption(StandardSocketOptions.SO_SNDBUF, 16 * 1024);
+        socketChannel.setOption(StandardSocketOptions.SO_KEEPALIVE, true);
+        socketChannel.setOption(StandardSocketOptions.SO_REUSEADDR, true);
 
         IoContext context = IoContext.get();
         SocketChannelAdapter adapter = new SocketChannelAdapter(channel, context.getIoProvider(), this);
@@ -148,48 +158,65 @@ public abstract class Connector implements Closeable, SocketChannelAdapter.OnCha
     /**
      * 改变当前调度器为桥接模式
      */
-    public void changeToBridge() {
-        if (receiveDispatcher instanceof BridgeSocketDispatcher) {
+    public static synchronized void bridge(Connector one, Connector another) {
+        if (one == another) {
+            throw new UnsupportedOperationException("Can not set current connector sender to self bridge mode!");
+        }
+
+        if (one.receiveDispatcher instanceof BridgeSocketDispatcher
+                || another.receiveDispatcher instanceof BridgeSocketDispatcher) {
             // 已改变直接返回
             return;
         }
 
         // 老的停止
-        receiveDispatcher.stop();
+        one.receiveDispatcher.stop();
+        another.receiveDispatcher.stop();
 
         // 构建新的接收者调度器
-        BridgeSocketDispatcher dispatcher = new BridgeSocketDispatcher(receiver);
-        receiveDispatcher = dispatcher;
-        // 启动
-        dispatcher.start();
-    }
+        BridgeSocketDispatcher oneBridgeSocketDispatcher = new BridgeSocketDispatcher(one.receiver, another.sender);
+        BridgeSocketDispatcher anotherBridgeSocketDispatcher = new BridgeSocketDispatcher(another.receiver, one.sender);
 
-    /**
-     * 将另外一个链接的发送者绑定到当前链接的桥接调度器上实现两个链接的桥接功能
-     *
-     * @param sender 另外一个链接的发送者
-     */
-    public void bindToBridge(Sender sender) {
-        if (sender == this.sender) {
-            throw new UnsupportedOperationException("Can not set current connector sender to self bridge mode!");
-        }
+        one.receiveDispatcher = oneBridgeSocketDispatcher;
+        one.sendDispatcher = anotherBridgeSocketDispatcher;
 
-        if (!(receiveDispatcher instanceof BridgeSocketDispatcher)) {
-            throw new IllegalStateException("ReceiveDispatcher is not BridgeSocketDispatcher!");
-        }
+        another.receiveDispatcher = anotherBridgeSocketDispatcher;
+        another.sendDispatcher = oneBridgeSocketDispatcher;
 
-        ((BridgeSocketDispatcher) receiveDispatcher).bindSender(sender);
+        one.bridgeConnector = another;
+        another.bridgeConnector = one;
+
+        oneBridgeSocketDispatcher.start();
+        anotherBridgeSocketDispatcher.start();
     }
 
     /**
      * 将之前链接的发送者解除绑定，解除桥接数据发送功能
      */
-    public void unBindToBridge() {
-        if (!(receiveDispatcher instanceof BridgeSocketDispatcher)) {
-            throw new IllegalStateException("ReceiveDispatcher is not BridgeSocketDispatcher!");
+    public void relieveBridge() {
+        final Connector another = this.bridgeConnector;
+        if (another == null) {
+            return;
         }
 
-        ((BridgeSocketDispatcher) receiveDispatcher).bindSender(null);
+        this.bridgeConnector = null;
+        another.bridgeConnector = null;
+
+        if (!(this.receiveDispatcher instanceof BridgeSocketDispatcher) ||
+                !(another.receiveDispatcher instanceof BridgeSocketDispatcher)) {
+            throw new IllegalStateException("receiveDispatcher is not BridgeSocketDispatcher!");
+        }
+
+        this.receiveDispatcher.stop();
+        another.receiveDispatcher.stop();
+
+        this.sendDispatcher = new AsyncSendDispatcher(sender);
+        this.receiveDispatcher = new AsyncReceiveDispatcher(receiver, receivePacketCallback);
+        this.receiveDispatcher.start();
+
+        another.sendDispatcher = new AsyncSendDispatcher(sender);
+        another.receiveDispatcher = new AsyncReceiveDispatcher(receiver, receivePacketCallback);
+        another.receiveDispatcher.start();
     }
 
     /**

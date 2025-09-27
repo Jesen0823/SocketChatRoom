@@ -313,3 +313,41 @@ key的状态流转：
 
 ### **内存复用问题：**
 
+1. 频繁创建IoTask对象
+
+```java
+// StealingSelectorThread.java
+public boolean register(SocketChannel channel, int ops, IoProvider.HandleProviderCallback callback) {
+        if (channel.isOpen()) {
+            IoTask ioTask = new IoTask(channel, callback, ops);
+            mRegisterTaskQueue.offer(ioTask);
+            return true;
+        }
+        return false;
+}
+```
+
+> 优化：将task的执行封装进IoTask，复用对象，减少创建。
+
+2. 频繁调用，数据生产者过快，内存暴增
+
+```java
+// AsyncSendDispatcher.java
+@Override
+    public void send(SendPacket packet) {
+        try {
+            queue.put(packet);
+            requestSend(false);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+}
+```
+
+> 优化：将queue改为阻塞队列BlockingQueue，使用LinkedBlockingQueue的地方换成有界队列。
+
+
+
+优化后，CPU明显降低，平均8%，内存经过GC之后，平均保持在30MB:
+
+![内存优化-ClientTest-CPU与内存](doc/内存优化-ClientTest-CPU与内存.jpg)

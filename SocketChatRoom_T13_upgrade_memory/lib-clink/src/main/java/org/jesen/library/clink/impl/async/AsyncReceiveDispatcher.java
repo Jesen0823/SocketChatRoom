@@ -36,26 +36,24 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
     @Override
     public void stop() {
         System.out.println("--AsyncReceiveDispatcher,stop.");
+        receiver.setReceiveListener(null);
     }
 
     @Override
     public void close() throws IOException {
         if (isClosed.compareAndSet(false, true)) {
             writer.close();
+            receiver.setReceiveListener(null);
         }
     }
 
     private void registerReceive() {
         try {
             receiver.postReceiveAsync();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            closeAndNotify();
+            CloseUtils.close(this);
         }
-    }
-
-    private void closeAndNotify() {
-        CloseUtils.close(this);
     }
 
     @Override
@@ -66,21 +64,22 @@ public class AsyncReceiveDispatcher implements ReceiveDispatcher, IoArgs.IoArgsE
     }
 
     @Override
-    public void onConsumeFailed(IoArgs args, Exception e) {
+    public boolean onConsumeFailed(Throwable e) {
         e.printStackTrace();
+        CloseUtils.close(this);
+        return true;
     }
 
     @Override
-    public void onConsumeCompleted(IoArgs args) {
-        if (isClosed.get()) {
-            return;
-        }
+    public boolean onConsumeCompleted(IoArgs args) {
+        final AtomicBoolean isClosed = this.isClosed;
+        final AsyncPacketWriter writer = this.writer;
         // 消费IoArgs之前，标记为写入完成
         args.finishWriting();
         do {
             writer.consumeIoArgs(args);
         } while (args.remained() && !isClosed.get());
-        registerReceive(); // 接收下一次数据
+        return !isClosed.get();
     }
 
     /**

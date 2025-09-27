@@ -1,7 +1,10 @@
 package org.jesen.library.clink.impl.stealing;
 
+import org.jesen.library.clink.core.IoTask;
+
 import java.util.Arrays;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.function.IntFunction;
 
 /**
@@ -15,7 +18,7 @@ public class StealingService {
     private final StealingSelectorThread[] threads;
 
     // 任务队列
-    private final LinkedBlockingQueue<IoTask>[] queues;
+    private final Queue<IoTask>[] queues;
     // 结束标记
     private volatile boolean isTerminated = false;
 
@@ -24,7 +27,7 @@ public class StealingService {
         this.threads = threads;
         this.queues = Arrays.stream(threads)
                 .map(StealingSelectorThread::getReadyTaskQueue)
-                .toArray((IntFunction<LinkedBlockingQueue<IoTask>[]>) LinkedBlockingQueue[]::new);
+                .toArray((IntFunction<Queue<IoTask>[]>) ArrayBlockingQueue[]::new);
     }
 
     /**
@@ -33,10 +36,10 @@ public class StealingService {
      * @param excludedQueue 待排除的队列
      * @return 窃取成功返回实例，失败返回NULL
      */
-    IoTask steal(final LinkedBlockingQueue<IoTask> excludedQueue) {
+    IoTask steal(final Queue<IoTask> excludedQueue) {
         final int minSafeThreshold = this.minSafeThreshold;
-        final LinkedBlockingQueue<IoTask>[] queues = this.queues;
-        for (LinkedBlockingQueue<IoTask> queue : queues) {
+        final Queue<IoTask>[] queues = this.queues;
+        for (Queue<IoTask> queue : queues) {
             if (queue == excludedQueue) {
                 continue;
             }

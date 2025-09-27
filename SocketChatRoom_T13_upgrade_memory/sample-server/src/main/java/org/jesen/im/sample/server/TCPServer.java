@@ -242,9 +242,6 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
                     // 添加绑定关系
                     audioCmdToStreamMap.put(handler, audioStreamConnector);
                     audioStreamToCmdMap.put(audioStreamConnector, handler);
-
-                    // 转换为桥接模式
-                    audioStreamConnector.changeToBridge();
                 }
             } else if (str.startsWith(Foo.COMMAND_AUDIO_CREATE_ROOM)) {  // 创建房间操作
                 ConnectorHandler audioStreamConnector = findAudioStreamConnector(handler);
@@ -278,8 +275,7 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
                         ConnectorHandler theOtherHandler = room.getTheOtherHandler(audioStreamConnector);
 
                         // 相互搭建好乔
-                        theOtherHandler.bindToBridge(audioStreamConnector.getSender());
-                        audioStreamConnector.bindToBridge(theOtherHandler.getSender());
+                        Connector.bridge(audioStreamConnector,theOtherHandler);
 
                         // 成功加入房间
                         sendMessageToClient(handler, Foo.COMMAND_INFO_AUDIO_START);
@@ -348,7 +344,7 @@ public class TCPServer implements ServerAcceptor.AcceptListener, Group.GroupMess
         ConnectorHandler[] connectors = room.getConnectors();
         for (ConnectorHandler connector : connectors) {
             // 解除桥接
-            connector.unBindToBridge();
+            connector.relieveBridge();
             // 移除缓存
             audioStreamRoomMap.remove(connector);
             if (connector != streamConnector) {

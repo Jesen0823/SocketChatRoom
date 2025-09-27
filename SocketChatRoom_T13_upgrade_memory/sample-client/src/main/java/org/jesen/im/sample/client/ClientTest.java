@@ -21,7 +21,7 @@ public class ClientTest {
     // 不考虑发送消耗，并发量：2000*4/400*1000 = 2w/s 算上来回2次数据解析：4w/s
     private static final int CLIENT_SIZE = 2000;      // 2000个客户端
     private static final int SEND_THREAD_SIZE = 4;    // 4个线程
-    private static final int SEND_THREAD_DELAY = 300; // 每个线程间隔400ms
+    private static final int SEND_THREAD_DELAY = 400; // 每个线程间隔400ms
 
     public static void main(String[] args) throws IOException {
         ServerInfo info = UDPSearcher.searchServer(10000);
@@ -108,7 +108,6 @@ public class ClientTest {
         for (TCPClient tcpClient : exitClients) {
             tcpClient.exit();
         }
-        exitClients = null;
 
         IoContext.close();
 
